@@ -1,0 +1,11 @@
+# Ignore artifacts:
+build
+dist
+coverage
+node_modules
+
+# Ignore config files
+vite.config.ts.timestamp
+
+# Ignore generated files
+package-lock.json

@@ -1,0 +1,30 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgis/postgis:15-3.4
+    container_name: postgis-painel
+    restart: always
+    environment:
+      POSTGRES_USER: usuario-painel
+      POSTGRES_PASSWORD: senha
+      POSTGRES_DB: banco-segreg
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin-painel
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "8081:80"
+    depends_on:
+      - postgres
+
+volumes:
+  pgdata:

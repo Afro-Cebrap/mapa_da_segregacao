@@ -1,0 +1,123 @@
+# =========================
+# Environment variables
+# =========================
+.env
+.env.*
+!.env.example
+
+deploy/.env
+deploy/vm/.env
+
+# =========================
+# AI Agents / IDE Assistants
+# =========================
+.claude
+.claude/
+*.claude/
+docs/
+
+.cursor
+.cursor/
+.cursorignore
+
+.github/copilot*
+.copilot/
+.windsurf/
+.codeium/
+.aider*
+.avante*
+.continue/
+
+# =========================
+# Node / JS / TS
+# =========================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+dist/
+build/
+coverage/
+
+.next/
+.nuxt/
+.svelte-kit/
+.vite/
+
+*.tsbuildinfo
+
+# =========================
+# Logs
+# =========================
+logs/
+*.log
+
+# =========================
+# OS files
+# =========================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# =========================
+# IDEs / Editors
+# =========================
+.vscode/
+.idea/
+
+*.swp
+*.swo
+
+# =========================
+# Docker
+# =========================
+.docker/
+docker-data/
+*.pid
+
+# =========================
+# Temporary / Cache
+# =========================
+.cache/
+.temp/
+tmp/
+temp/
+
+# =========================
+# Test / Playwright / Cypress
+# =========================
+playwright-report/
+test-results/
+coverage/
+
+cypress/videos/
+cypress/screenshots/
+
+# =========================
+# Prisma / Database
+# =========================
+prisma/dev.db
+prisma/dev.db-journal
+
+# =========================
+# Terraform / Infra
+# =========================
+.terraform/
+*.tfstate
+*.tfstate.*
+
+# =========================
+# Misc secrets
+# =========================
+*.pem
+*.key
+*.crt
+*.p12
+
+# =========================
+# Mac/Linux hidden files
+# =========================
+.fuse_hidden*
+.nfs*

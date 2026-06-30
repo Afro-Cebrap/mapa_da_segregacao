@@ -1,0 +1,71 @@
+name: Deploy Web (Firebase Hosting)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - '.github/workflows/deploy-web.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # WIF autentica o gcloud (resolver a URL do Cloud Run). O Firebase
+      # Hosting usa um refresh token de CI (secrets.FIREBASE_TOKEN), pois o
+      # firebase-tools nao aceita credencial WIF (external_account).
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.DEPLOY_SA_EMAIL }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Resolve Cloud Run URL
+        run: |
+          URL=$(gcloud run services describe ${{ vars.RUN_SERVICE }} \
+            --region ${{ vars.GCP_REGION }} \
+            --project ${{ vars.GCP_PROJECT_INFRA }} \
+            --format='value(status.url)')
+          if [ -z "$URL" ]; then
+            echo "ERRO: nao foi possivel resolver a URL do Cloud Run." >&2
+            exit 1
+          fi
+          echo "Cloud Run URL: $URL"
+          echo "VITE_API_URL=$URL" >> "$GITHUB_ENV"
+
+      - name: Build
+        working-directory: app
+        run: |
+          bun install --frozen-lockfile
+          VITE_API_URL="$VITE_API_URL" bun run build
+
+      - name: Install Firebase CLI
+        run: bun add -g firebase-tools
+
+      - name: Deploy to Firebase Hosting
+        working-directory: app
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          set +e
+          OUT=$(firebase deploy --only hosting --project ${{ vars.FIREBASE_PROJECT }} --non-interactive 2>&1)
+          CODE=$?
+          echo "$OUT"
+          # firebase-tools sai com erro quando a versao publicada ja virou a
+          # ativa (release redundante). Isso significa que o conteudo esta no
+          # ar; tratamos apenas esse caso especifico como sucesso.
+          if [ $CODE -ne 0 ] && echo "$OUT" | grep -q "is the current active version"; then
+            echo "::warning::Release redundante (versao ja ativa); tratando como sucesso."
+            exit 0
+          fi
+          exit $CODE

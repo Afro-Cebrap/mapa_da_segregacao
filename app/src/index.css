@@ -1,0 +1,321 @@
+@import url('https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@300;400;500;600;700;800;900&family=Source+Sans+3:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,900;1,400;1,600&display=swap');
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+/* @custom-variant dark (&:is(.dark *)); */
+
+@theme {
+	/* Substitutas gratuitas das fontes do Figma:
+	   Source Sans 3 ≈ Acumin Pro (corpo) · Saira Condensed ≈ Acumin Pro Condensed (títulos) */
+	--font-sans: 'Source Sans 3', ui-sans-serif, system-ui, sans-serif;
+	--font-display: 'Saira Condensed', 'Source Sans 3', sans-serif;
+
+	/* Acessibilidade — público mais velho: eleva apenas os menores degraus
+	   (sm e xs) até o piso de 16px, para nada renderizar em "sm"/14px ou
+	   menos. Os demais tamanhos (base em diante) ficam no padrão do Tailwind.
+	   Como base = 16px, sm/xs vão a 16px (sem ultrapassar base). */
+	--text-xs: 1rem; /* 12 → 16 */
+	--text-sm: 1rem; /* 14 → 16 */
+
+	/* Paleta — Mapa da Segregação (verde-escuro + laranja + creme) */
+	--color-background: #f2e9cc;
+	--color-foreground: #022604;
+
+	--color-card: oklch(0.97 0.025 92);
+	--color-card-foreground: #022604;
+
+	--color-popover: oklch(0.97 0.025 92);
+	--color-popover-foreground: #022604;
+
+	--color-primary: #c37103;
+	--color-primary-foreground: oklch(0.97 0.025 92);
+
+	--color-secondary: oklch(0.88 0.05 92);
+	--color-secondary-foreground: #022604;
+
+	--color-muted: oklch(0.9 0.04 92);
+	--color-muted-foreground: oklch(0.45 0.06 145);
+
+	--color-accent: #022604;
+	--color-accent-foreground: #f2e9cc;
+
+	--color-destructive: oklch(0.577 0.245 27.325);
+	--color-destructive-foreground: oklch(0.97 0.025 92);
+
+	--color-border: oklch(0.82 0.05 92);
+	--color-input: oklch(0.85 0.04 92);
+	--color-ring: #c37103;
+
+	--color-sidebar-background: #022604;
+	--color-sidebar-foreground: #f2e9cc;
+	--color-sidebar-primary: #c37103;
+	--color-sidebar-primary-foreground: #f2e9cc;
+	--color-sidebar-accent: oklch(0.32 0.06 145);
+	--color-sidebar-accent-foreground: #f2e9cc;
+	--color-sidebar-border: oklch(0.32 0.06 145);
+	--color-sidebar-ring: #c37103;
+
+	--radius-lg: 1rem;
+	--radius-md: calc(var(--radius-lg) - 2px);
+	--radius-sm: calc(var(--radius-lg) - 4px);
+}
+
+@layer base {
+	* {
+		@apply border-border outline-ring/50;
+	}
+	html {
+		scroll-behavior: smooth;
+	}
+	body {
+		@apply bg-background text-foreground antialiased;
+		background: var(--background);
+		min-height: 100vh;
+	}
+	h1,
+	h2,
+	h3 {
+		font-family: var(--font-display);
+		font-weight: 800;
+		letter-spacing: 0.005em;
+		text-transform: uppercase;
+		line-height: 0.9;
+	}
+	h4,
+	h5,
+	h6 {
+		font-family: var(--font-sans);
+		font-weight: 700;
+		letter-spacing: -0.01em;
+	}
+	p {
+		text-wrap: pretty;
+	}
+	::selection {
+		background: color-mix(in srgb, var(--primary) 26%, white);
+		color: var(--foreground);
+	}
+}
+
+@theme inline {
+	--radius-sm: calc(var(--radius) - 4px);
+	--radius-md: calc(var(--radius) - 2px);
+	--radius-lg: var(--radius);
+	--radius-xl: calc(var(--radius) + 4px);
+	--radius-2xl: calc(var(--radius) + 8px);
+	--radius-3xl: calc(var(--radius) + 12px);
+	--radius-4xl: calc(var(--radius) + 16px);
+	--color-background: var(--background);
+	--color-foreground: var(--foreground);
+	--color-card: var(--card);
+	--color-card-foreground: var(--card-foreground);
+	--color-popover: var(--popover);
+	--color-popover-foreground: var(--popover-foreground);
+	--color-primary: var(--primary);
+	--color-primary-foreground: var(--primary-foreground);
+	--color-secondary: var(--secondary);
+	--color-secondary-foreground: var(--secondary-foreground);
+	--color-muted: var(--muted);
+	--color-muted-foreground: var(--muted-foreground);
+	--color-accent: var(--accent);
+	--color-accent-foreground: var(--accent-foreground);
+	--color-destructive: var(--destructive);
+	--color-border: var(--border);
+	--color-input: var(--input);
+	--color-ring: var(--ring);
+	--color-chart-1: var(--chart-1);
+	--color-chart-2: var(--chart-2);
+	--color-chart-3: var(--chart-3);
+	--color-chart-4: var(--chart-4);
+	--color-chart-5: var(--chart-5);
+	--color-sidebar: var(--sidebar);
+	--color-sidebar-foreground: var(--sidebar-foreground);
+	--color-sidebar-primary: var(--sidebar-primary);
+	--color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+	--color-sidebar-accent: var(--sidebar-accent);
+	--color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+	--color-sidebar-border: var(--sidebar-border);
+	--color-sidebar-ring: var(--sidebar-ring);
+
+	/* Paleta da marca (valores fixos, independentes de tema) — espelhada em
+	   src/constants/cores.ts para o código TS (MapLibre etc.). */
+	--color-marca-creme: #f2e9cc;
+	--color-marca-laranja: #c37103;
+	--color-marca-laranja-claro: #dfa151;
+	--color-marca-verde: #022604;
+	--color-marca-verde-escuro: #041401;
+}
+
+:root {
+	--radius: 1rem;
+	--background: #f2e9cc;
+	--foreground: #022604;
+	--card: oklch(0.97 0.025 92);
+	--card-foreground: #022604;
+	--popover: oklch(0.97 0.025 92);
+	--popover-foreground: #022604;
+	--primary: #c37103;
+	--primary-foreground: oklch(0.97 0.025 92);
+	--secondary: oklch(0.88 0.05 92);
+	--secondary-foreground: #022604;
+	--muted: oklch(0.9 0.04 92);
+	--muted-foreground: oklch(0.45 0.06 145);
+	--accent: #022604;
+	--accent-foreground: #f2e9cc;
+	--destructive: oklch(0.577 0.245 27.325);
+	--border: oklch(0.82 0.05 92);
+	--input: oklch(0.85 0.04 92);
+	--ring: #c37103;
+	--chart-1: #c37103;
+	--chart-2: oklch(0.4 0.08 145);
+	--chart-3: oklch(0.45 0.06 145);
+	--chart-4: oklch(0.7 0.12 92);
+	--chart-5: oklch(0.6 0.18 25);
+	--sidebar: #022604;
+	--sidebar-foreground: #f2e9cc;
+	--sidebar-primary: #c37103;
+	--sidebar-primary-foreground: #f2e9cc;
+	--sidebar-accent: oklch(0.32 0.06 145);
+	--sidebar-accent-foreground: #f2e9cc;
+	--sidebar-border: oklch(0.32 0.06 145);
+	--sidebar-ring: #c37103;
+}
+
+/* TEMPORARIAMENTE REMOVIDO TEMA DARK
+.dark {
+	--background: oklch(0.145 0 0);
+	--foreground: oklch(0.985 0 0);
+	--card: oklch(0.205 0 0);
+	--card-foreground: oklch(0.985 0 0);
+	--popover: oklch(0.205 0 0);
+	--popover-foreground: oklch(0.985 0 0);
+	--primary: oklch(0.922 0 0);
+	--primary-foreground: oklch(0.205 0 0);
+	--secondary: oklch(0.269 0 0);
+	--secondary-foreground: oklch(0.985 0 0);
+	--muted: oklch(0.269 0 0);
+	--muted-foreground: oklch(0.708 0 0);
+	--accent: oklch(0.269 0 0);
+	--accent-foreground: oklch(0.985 0 0);
+	--destructive: oklch(0.704 0.191 22.216);
+	--border: oklch(1 0 0 / 10%);
+	--input: oklch(1 0 0 / 15%);
+	--ring: oklch(0.556 0 0);
+	--chart-1: oklch(0.488 0.243 264.376);
+	--chart-2: oklch(0.696 0.17 162.48);
+	--chart-3: oklch(0.769 0.188 70.08);
+	--chart-4: oklch(0.627 0.265 303.9);
+	--chart-5: oklch(0.645 0.246 16.439);
+	--sidebar: oklch(0.205 0 0);
+	--sidebar-foreground: oklch(0.985 0 0);
+	--sidebar-primary: oklch(0.488 0.243 264.376);
+	--sidebar-primary-foreground: oklch(0.985 0 0);
+	--sidebar-accent: oklch(0.269 0 0);
+	--sidebar-accent-foreground: oklch(0.985 0 0);
+	--sidebar-border: oklch(1 0 0 / 10%);
+	--sidebar-ring: oklch(0.556 0 0);
+}
+*/
+
+@layer base {
+	* {
+		@apply border-border outline-ring/50;
+	}
+	html {
+		scroll-behavior: smooth;
+	}
+	body {
+		@apply bg-background text-foreground antialiased;
+		background: var(--background);
+		min-height: 100vh;
+	}
+	h1,
+	h2,
+	h3 {
+		font-family: var(--font-display);
+		font-weight: 800;
+		letter-spacing: 0.005em;
+		text-transform: uppercase;
+		line-height: 0.9;
+	}
+	h4,
+	h5,
+	h6 {
+		font-family: var(--font-sans);
+		font-weight: 700;
+		letter-spacing: -0.01em;
+	}
+	p {
+		text-wrap: pretty;
+	}
+	::selection {
+		background: color-mix(in srgb, var(--primary) 26%, white);
+		color: var(--foreground);
+	}
+}
+
+@keyframes smooth-shine {
+	0% {
+		background-position: 200% 0;
+	}
+	100% {
+		background-position: -200% 0;
+	}
+}
+
+/* ── School tooltip: strip MapLibre default popup chrome ── */
+.school-tooltip .maplibregl-popup-content {
+	background: transparent;
+	box-shadow: none;
+	padding: 0;
+	border-radius: 0;
+}
+
+.school-tooltip .maplibregl-popup-tip {
+	display: none;
+}
+
+.dark-panel {
+	background: var(--accent);
+	color: var(--accent-foreground);
+}
+
+/* ── Hide Map Navigation & Info Control on mobile ── */
+@media (max-width: 768px) {
+	.maplibregl-ctrl-top-right,
+	.maplibregl-ctrl-bottom-right {
+		display: none;
+	}
+}
+
+/* ── Scrollbar dos menus de local (Filtros/Pesquisa/Setores) ──
+   Estilo do Figma: barra quadrada, trilho laranja e polegar verde-escuro
+   (cores da paleta). Um pouco mais grossa que a referência p/ leitura. */
+.scrollbar-laranja {
+	scrollbar-width: thin;
+	scrollbar-color: var(--color-marca-verde) var(--color-marca-laranja);
+}
+.scrollbar-laranja::-webkit-scrollbar {
+	width: 10px;
+}
+/* Sem setas/botões no topo e na base da barra. */
+.scrollbar-laranja::-webkit-scrollbar-button {
+	display: none;
+	height: 0;
+	width: 0;
+}
+.scrollbar-laranja::-webkit-scrollbar-track {
+	background: var(--color-marca-laranja);
+	border-radius: 0;
+}
+.scrollbar-laranja::-webkit-scrollbar-thumb {
+	background-color: var(--color-marca-verde);
+	border-radius: 0;
+	border: 0;
+	min-height: 56px;
+}
+/* Hover sutil e intencional (escurece um tom) — sem realce default do browser. */
+.scrollbar-laranja::-webkit-scrollbar-thumb:hover {
+	background-color: var(--color-marca-verde-escuro);
+}

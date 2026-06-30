@@ -1,0 +1,13 @@
+venv1/
+.venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+*.log
+.env
+.env.example
+docker-compose.yml
+README.md
+# Exclui os parquets pesados, mas mantem os scripts de data/ (db_build, simplify)
+# que o container de ingestao precisa rodar.
+data/*.parquet
