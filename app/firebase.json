@@ -1,6 +1,6 @@
 {
 	"hosting": {
-		"site": "painel-segregacao",
+		"site": "mapa-da-segregacao",
 		"public": "dist",
 		"ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
 		"rewrites": [
