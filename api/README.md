@@ -1,151 +1,97 @@
-# Painel Segregacao - Backend
+# API — Mapa da Segregação
 
-API em FastAPI responsavel por disponibilizar dados de setores censitarios e tiles vetoriais para o painel.
+FastAPI backend servindo dados de segregação racial por setor censitário, município e região metropolitana via JSON e tiles vetoriais (MVT/Protobuf).
 
-O backend foi organizado em camadas simples:
-
-- rotas FastAPI
-- controllers
-- repositories
-- models ORM
-- schemas Pydantic
-- conexao com PostgreSQL/PostGIS
+**Produção:** https://painel-api-2olyn5cqxq-uc.a.run.app/docs
 
 ## Stack
 
-- Python
-- FastAPI
-- SQLAlchemy
-- Pydantic
-- PostgreSQL + PostGIS
-- GeoAlchemy2
-- GeoPandas
-- Pandas
+- Python 3.11+, FastAPI, Uvicorn
+- SQLAlchemy + GeoAlchemy2 (ORM + spatial)
+- PostgreSQL 15 + PostGIS (Cloud SQL em produção, Docker local)
+- Pydantic (schemas de resposta)
 
-## Estrutura
+## Desenvolvimento local
 
-- `app.py`: cria a aplicacao FastAPI, registra middleware e inclui as rotas
-- `db/connection.py`: conexao com o banco e dependency `get_db`
-- `routes/setores_routes.py`: endpoints HTTP de setores
-- `controllers/setores_controller.py`: orquestracao entre rota e repositorio
-- `repositories/setores_repository.py`: queries ORM e SQL nativo para MVT
-- `models/setores_model.py`: mapeamento da tabela `dados.setores_censitarios`
-- `schemas/setores_schema.py`: contrato de resposta serializado pela API
-- `data/db_build.py`: carga de dados parquet para o PostGIS
-- `data/simplify_table.py`: criacao de tabelas com geometria simplificada
-- `docker-compose.yml`: ambiente local com PostGIS e pgAdmin
+**Pré-requisito:** Docker Desktop rodando.
 
-## Banco de dados
+```bash
+# 1. Banco local (PostGIS :5433 + pgAdmin :8081)
+cd api
+docker compose up -d
 
-A API espera uma base PostgreSQL com extensoes espaciais e uma tabela principal:
+# 2. Instalar dependências
+venv1\Scripts\python -m pip install -r requirements.txt
 
-- schema: `dados`
-- tabela: `setores_censitarios`
+# 3. Criar api/.env a partir do exemplo
+copy .env.example .env
 
-Campos principais esperados:
+# 4. Rodar a API
+venv1\Scripts\python -m uvicorn app:app --reload --host 127.0.0.1 --port 8000
+```
 
-- identificacao territorial: `code_muni`, `cod_setor`
-- totais populacionais: `n_total`, `n_branca`, `n_preta_ou_parda`, `n_preta`, `n_amarela`, `n_parda`, `n_indigena`
-- percentuais: `percent_branca`, `percent_preta_ou_parda`, `percent_preta`, `percent_amarela`, `percent_parda`, `percent_indigena`
-- indicadores: `dissimil`, `entropy`, `index_h`
-- geometria: `geometry` em `MULTIPOLYGON` com SRID `4674` (SIRGAS 2000)
+Swagger: http://127.0.0.1:8000/docs
 
-Observacao:
+## Testes
 
-- a API transforma a geometria para `EPSG:4326` ao responder GeoJSON para consumo no frontend
+```bash
+cd api
+venv1\Scripts\python -m pytest tests -v
+```
 
-## Configuracao
+## Arquitetura interna
 
-### Variaveis de ambiente
+```
+routes/         HTTP — APIRouter, validação de params, serialização
+controllers/    Orquestração entre rota e repositório
+repositories/   Queries ORM e SQL nativo para MVT
+  geo_comum.py  Utilitários espaciais compartilhados (viewport, MVT, zoom)
+models/         SQLAlchemy ORM (tabela dados.setores, etc.)
+schemas/        Pydantic — contratos de resposta
+db/             Engine SQLAlchemy + dependency get_db
+data/           Scripts offline (ingestão parquet, simplificação de geometria)
+```
 
-Crie um arquivo `.env` em `api/` com base em `.env.example`:
+## Endpoints
+
+| Método | Rota | Descrição |
+|---|---|---|
+| GET | `/api/setores/tiles/{z}/{x}/{y}.pbf` | Tile MVT de setores censitários |
+| GET | `/api/setores/viewport` | GeoJSON por bbox |
+| GET | `/api/setores/indicadores` | Métricas sem geometria (ranking) |
+| GET | `/api/setores/escala` | Percentis de métrica por escopo |
+| GET | `/api/municipios/tiles/{z}/{x}/{y}.pbf` | Tile MVT de municípios |
+| GET | `/api/municipios/lista` | Lista leve (sem geometria) com bbox |
+| GET | `/api/municipios/indicadores` | Métricas sem geometria (ranking) |
+| GET | `/api/reg_metro/tiles/{z}/{x}/{y}.pbf` | Tile MVT de RMs |
+| GET | `/api/reg_metro/indicadores` | Métricas sem geometria (ranking) |
+
+Tiles retornam `application/x-protobuf`, `Cache-Control: max-age=86400` e `204` para tiles vazios.
+
+## Variáveis de ambiente
 
 ```env
+# api/.env (local)
 DB_HOST=localhost
 DB_PORT=5433
 DB_NAME=banco-segreg
 DB_USER=usuario-painel
 DB_PASS=senha
+
+# Em produção (Cloud Run), DB_PASS vem do Secret Manager e
+# INSTANCE_CONNECTION_NAME conecta via unix socket /cloudsql/...
 ```
 
-### Banco local com Docker
+## Ingestão de dados
 
 ```bash
+# Ingerir parquet no banco local
 cd api
-docker compose up -d
+venv1\Scripts\python data/db_build.py
+
+# Criar tabelas simplificadas para tiles em zoom baixo
+venv1\Scripts\python data/simplify_table.py
+
+# Ingerir direto no Cloud SQL via Auth Proxy
+./deploy/gcp/ingest-local.sh
 ```
-
-Servicos disponiveis:
-
-- PostgreSQL/PostGIS: `localhost:5433`
-- pgAdmin: `http://localhost:8081`
-
-Credenciais padrao do pgAdmin:
-
-- usuario: `admin@admin.com`
-- senha: `admin`
-
-## Como rodar a API
-
-### Usando `.venv`
-
-Na raiz do repositorio:
-
-```bash
-py -m venv .venv
-.\.venv\Scripts\python -m pip install -r api\requirements.txt
-cd api
-..\.venv\Scripts\python -m uvicorn app:app --reload
-```
-
-Se estiver executando o comando manualmente no Windows, use:
-
-```bash
-cd api
-..\.venv\Scripts\python -m uvicorn app:app --reload --host 127.0.0.1 --port 8000
-```
-
-A API fica disponivel em:
-
-- `http://127.0.0.1:8000`
-- documentacao Swagger: `http://127.0.0.1:8000/docs`
-- contrato OpenAPI: `http://127.0.0.1:8000/openapi.json`
-
-## Endpoints
-
-### `GET /api/setores/`
-
-Retorna todos os setores censitarios cadastrados, com atributos numericos e geometria em GeoJSON.
-
-### `GET /api/setores/municipio?codMunicipio=3550308`
-
-Retorna os setores filtrados por codigo do municipio.
-
-Parametro esperado:
-
-- `codMunicipio`: codigo do municipio enviado como query string
-
-### `GET /api/setores/viewport?bbox=minLng,minLat,maxLng,maxLat&zoom=10`
-
-Retorna os setores visiveis na area atual do mapa em formato GeoJSON `FeatureCollection`.
-
-Parametros esperados:
-
-- `bbox`: bounds no formato `minLng,minLat,maxLng,maxLat`
-- `zoom`: nivel de zoom atual do mapa
-
-Comportamento:
-
-- escolhe automaticamente uma tabela simplificada por faixa de zoom, quando ela existir
-- faz fallback para `dados.setores_censitarios` quando as tabelas simplificadas nao estiverem disponiveis
-- cada feature inclui os campos usados hoje no frontend para estilo tematico e popup
-
-### `GET /api/setores/tiles/{z}/{x}/{y}.pbf`
-
-Retorna um tile vetorial Mapbox Vector Tile para consumo cartografico.
-
-Comportamento:
-
-- responde com `application/x-protobuf`
-- retorna `204` quando o tile nao possui feicoes
-- adiciona cache header com `max-age=3600`

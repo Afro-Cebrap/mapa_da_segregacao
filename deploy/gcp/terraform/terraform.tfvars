@@ -1,9 +1,9 @@
-project_infra    = "painel-segregacao-001"
-project_firebase = "painel-segregacao"
+project_infra    = "mapa-da-segregacao"
+project_firebase = "mapa-da-segregacao"
 region           = "us-central1"
-github_repo      = "tavusdata/painel-segregacoes"
+github_repo      = "Afro-Cebrap/mapa_da_segregacao"
 
 cors_origins = [
-  "https://painel-segregacao.web.app",
-  "https://painel-segregacao.firebaseapp.com",
+  "https://mapa-da-segregacao.web.app",
+  "https://mapa-da-segregacao.firebaseapp.com",
 ]
