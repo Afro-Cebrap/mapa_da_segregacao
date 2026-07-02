@@ -83,9 +83,6 @@ function IndicatorFilter({
 	][];
 
 	const activeGroup = metricsConfig[activeMetric].group;
-	const groupMetrics = metrics.filter(
-		([, config]) => config.group === activeGroup,
-	);
 
 	const firstMetricOf = (group: MetricGroup): MetricType =>
 		metrics.find(([, config]) => config.group === group)![0];
@@ -132,25 +129,55 @@ function IndicatorFilter({
 			{/* Métricas do grupo ativo: cada botão tem a largura natural do seu
 			    rótulo (sem grow, sem ajuste de largura), padding de 10px em todos
 			    os lados e fica alinhado à esquerda, empacotando da esquerda para a
-			    direita com gap de 10px. */}
-			<div className="mt-7 flex flex-wrap gap-2.5">
-				{groupMetrics.map(([key, config]) => {
-					const isActive = activeMetric === key;
+			    direita com gap de 10px.
+
+			    Todos os grupos são renderizados sobrepostos na mesma célula de
+			    grid (col/row-start-1). Só o grupo ativo fica visível; os demais
+			    ficam invisíveis mas continuam ocupando espaço, então o contêiner
+			    mantém sempre a altura do MAIOR grupo. Assim a seção "Escala"
+			    abaixo não muda de posição ao alternar o modo de segregação
+			    (ex.: Segregação → Raça / Cor). */}
+			<div className="mt-7 grid">
+				{GROUP_ORDER.map((group) => {
+					const isActiveGroup = activeGroup === group;
+					const groupMetrics = metrics.filter(
+						([, config]) => config.group === group,
+					);
 					return (
-						<button
-							key={key}
-							type="button"
-							onClick={() => onMetricChange(key)}
-							title={config.label}
+						<div
+							key={group}
+							aria-hidden={!isActiveGroup}
 							className={cn(
-								'flex items-center justify-start whitespace-nowrap rounded-none border p-2.5 text-base font-semibold leading-none transition-all',
-								isActive
-									? 'border-primary bg-primary text-marca-verde-escuro'
-									: 'border-primary/60 text-sidebar-foreground hover:bg-primary/10',
+								// content-start / items-start: como o grupo ativo
+								// é esticado até a altura do maior grupo, ancoramos
+								// as linhas e os botões no topo em vez de deixar o
+								// flex esticá-los (align-content/items: stretch é o
+								// padrão) — assim os botões mantêm o tamanho natural.
+								'col-start-1 row-start-1 flex flex-wrap content-start items-start gap-2.5',
+								!isActiveGroup &&
+									'invisible pointer-events-none',
 							)}
 						>
-							{config.label}
-						</button>
+							{groupMetrics.map(([key, config]) => {
+								const isActive = activeMetric === key;
+								return (
+									<button
+										key={key}
+										type="button"
+										onClick={() => onMetricChange(key)}
+										title={config.label}
+										className={cn(
+											'flex items-center justify-start whitespace-nowrap rounded-none border p-2.5 text-base font-semibold leading-none transition-all',
+											isActive
+												? 'border-primary bg-primary text-marca-verde-escuro'
+												: 'border-primary/60 text-sidebar-foreground hover:bg-primary/10',
+										)}
+									>
+										{config.label}
+									</button>
+								);
+							})}
+						</div>
 					);
 				})}
 			</div>

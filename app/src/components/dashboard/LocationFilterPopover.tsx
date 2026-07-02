@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/popover';
 import { ESTADOS, siglaPorCodigoEstado } from '@/constants/estados';
 import { useLocationLookups } from '@/hooks/useLocationLookups';
-import { tabsFor } from '@/lib/location';
+import { layerForScope } from '@/lib/location';
 import type {
 	LocationFilter,
 	LocationFilterPopoverProps,
@@ -26,11 +26,22 @@ import type {
 
 type TabKey = LocationFilterScope;
 
+// Rótulos das abas conforme o Figma (Estados | Municípios | RM).
 const TAB_LABEL: Record<TabKey, string> = {
-	estado: 'Estado',
-	municipio: 'Município',
-	reg_metro: 'Região Metro.',
+	estado: 'Estados',
+	municipio: 'Municípios',
+	reg_metro: 'RM',
 };
+
+// Placeholder da busca no singular/por extenso (os rótulos das abas são curtos).
+const TAB_PLACEHOLDER: Record<TabKey, string> = {
+	estado: 'Buscar estado...',
+	municipio: 'Buscar município...',
+	reg_metro: 'Buscar região metropolitana...',
+};
+
+// Ordem fixa das abas do botão "Filtros", conforme o layout de referência.
+const FILTER_TABS: TabKey[] = ['estado', 'municipio', 'reg_metro'];
 
 export interface LocationFilterMenuProps {
 	tabs: TabKey[];
@@ -141,7 +152,7 @@ export function LocationFilterMenu({
 				className="rounded-none bg-transparent text-marca-verde"
 			>
 				<CommandInput
-					placeholder={`Buscar ${TAB_LABEL[activeTab].toLowerCase()}...`}
+					placeholder={TAB_PLACEHOLDER[activeTab]}
 					value={query}
 					onValueChange={setQuery}
 					className="text-marca-verde placeholder:text-marca-verde/50"
@@ -184,11 +195,9 @@ function LocationFilterPopover({
 	activeLayerId,
 	locationFilter,
 	onLocationFilterChange,
+	onLayerChange,
 }: LocationFilterPopoverProps) {
 	const [open, setOpen] = useState(false);
-	const tabs = tabsFor(activeLayerId);
-
-	if (tabs.length === 0) return null;
 
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
@@ -209,9 +218,18 @@ function LocationFilterPopover({
 				collisionPadding={8}
 			>
 				<LocationFilterMenu
-					tabs={tabs}
+					tabs={FILTER_TABS}
 					locationFilter={locationFilter}
 					onSelect={(filter) => {
+						// Ativa a camada natural do escopo escolhido (ex.:
+						// Município → Setores) antes de aplicar o filtro.
+						const targetLayer = layerForScope(
+							filter.scope,
+							activeLayerId,
+						);
+						if (targetLayer !== activeLayerId) {
+							onLayerChange(targetLayer);
+						}
 						onLocationFilterChange(filter);
 						setOpen(false);
 					}}

@@ -45,12 +45,17 @@ export function buildSegments(
 	return abbrev ? [ROOT, abbrev, filter.name] : [ROOT, filter.name];
 }
 
-// Abas de filtro de local disponíveis para cada camada.
-export function tabsFor(activeLayerId: LayerId): LocationFilterScope[] {
-	if (activeLayerId === 'setores') return ['municipio', 'reg_metro'];
-	if (activeLayerId === 'municipios') return ['estado', 'reg_metro'];
-	// regioes-metropolitanas: filtra por estado ou foca uma RM específica.
-	return ['estado', 'reg_metro'];
+// Camada natural ao escolher um filtro cujo escopo é incompatível com a
+// camada ativa. Se o escopo já é compatível com a camada atual, mantém-na;
+// caso contrário, abre a escala esperada: Estado → Municípios, Município →
+// Setores, RM → Municípios (nível nacional).
+export function layerForScope(
+	scope: LocationFilterScope,
+	activeLayerId: LayerId,
+): LayerId {
+	if (isFilterCompatible(scope, activeLayerId)) return activeLayerId;
+	if (scope === 'municipio') return 'setores';
+	return 'municipios';
 }
 
 // Regras de compatibilidade ao trocar de camada:

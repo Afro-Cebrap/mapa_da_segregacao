@@ -72,6 +72,7 @@ function SidebarControls({
 							activeLayerId={activeLayerId}
 							locationFilter={locationFilter}
 							onLocationFilterChange={onLocationFilterChange}
+							onLayerChange={onLayerChange}
 						/>
 						<LocationSearchPopover mapRef={mapRef} />
 					</div>

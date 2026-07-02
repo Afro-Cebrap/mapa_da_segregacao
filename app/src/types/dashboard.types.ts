@@ -163,4 +163,7 @@ export interface LocationFilterPopoverProps {
 	activeLayerId: LayerId;
 	locationFilter: LocationFilter | null;
 	onLocationFilterChange: (filter: LocationFilter | null) => void;
+	// Escolher um filtro cujo escopo é incompatível com a camada atual troca
+	// para a camada natural (ex.: Município → Setores).
+	onLayerChange: (layerId: LayerId) => void;
 }
