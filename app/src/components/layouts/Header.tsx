@@ -1,16 +1,33 @@
 import { Link, NavLink } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import logoAfroUrl from '@/assets/logo-afro-header.svg';
+import logoAfroDark from '@/assets/logo-afro-header.svg';
+import logoAfroLight from '@/assets/logo-afro-footer.svg';
 
 const NAV_ITEMS = [
 	{ name: 'Home', to: '/' },
 	{ name: 'Dados', to: '/dashboard' },
-	{ name: 'Sobre', to: '/sobre' },
+	{ name: 'Glossário', to: '/glossario' },
 ];
 
-export function Header() {
+type HeaderProps = {
+	/**
+	 * `light` (padrão): fundo creme, logo escuro — usado nas páginas claras.
+	 * `dark`: fundo transparente sobre o verde, logo claro, textos em creme —
+	 * usado na página de Glossário.
+	 */
+	variant?: 'light' | 'dark';
+};
+
+export function Header({ variant = 'light' }: HeaderProps) {
+	const escuro = variant === 'dark';
+
 	return (
-		<header className="relative z-40 w-full bg-background">
+		<header
+			className={cn(
+				'relative z-40 w-full',
+				escuro ? 'bg-transparent' : 'bg-background',
+			)}
+		>
 			<div className="mx-auto flex max-w-7xl items-center px-6 py-7 md:px-16">
 				<Link
 					to="/"
@@ -18,7 +35,7 @@ export function Header() {
 					aria-label="Mapa da Segregação"
 				>
 					<img
-						src={logoAfroUrl}
+						src={escuro ? logoAfroLight : logoAfroDark}
 						alt="Mapa da Segregação"
 						className="h-16 w-auto"
 					/>
@@ -33,9 +50,13 @@ export function Header() {
 							className={({ isActive }) =>
 								cn(
 									'font-display text-2xl leading-none tracking-wide normal-case transition-colors',
-									isActive
-										? 'font-bold text-foreground underline'
-										: 'font-medium text-foreground/85 hover:text-foreground',
+									escuro
+										? isActive
+											? 'font-bold text-accent-foreground underline'
+											: 'font-medium text-accent-foreground/85 hover:text-accent-foreground'
+										: isActive
+											? 'font-bold text-foreground underline'
+											: 'font-medium text-foreground/85 hover:text-foreground',
 								)
 							}
 						>
@@ -44,13 +65,15 @@ export function Header() {
 					))}
 				</nav>
 
-				<button
-					type="button"
-					className="ml-auto hidden font-display text-2xl font-medium leading-none tracking-wide text-foreground/85 transition-colors hover:text-foreground md:inline-flex"
-					aria-label="Idiomas"
-				>
-					Idiomas
-				</button>
+				{!escuro && (
+					<button
+						type="button"
+						className="ml-auto hidden font-display text-2xl font-medium leading-none tracking-wide text-foreground/85 transition-colors hover:text-foreground md:inline-flex"
+						aria-label="Idiomas"
+					>
+						Idiomas
+					</button>
+				)}
 			</div>
 		</header>
 	);

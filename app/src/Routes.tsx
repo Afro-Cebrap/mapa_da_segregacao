@@ -2,7 +2,9 @@ import { lazy, Suspense } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import MainLayout from '@/components/layouts/MainLayout';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
+import GlossarioLayout from '@/components/layouts/GlossarioLayout';
 import HomePage from '@/pages/Home';
+import GlossarioPage from '@/pages/Glossario';
 import NotFound from '@/pages/NotFound';
 import PageLoader from '@/components/PageLoader';
 import { ScrollToTop } from '@/components/ScrollToTop';
@@ -24,6 +26,16 @@ const router = createBrowserRouter([
 			{ index: true, element: <HomePage /> },
 			{ path: '*', element: <NotFound /> },
 		],
+	},
+	{
+		path: '/glossario',
+		element: (
+			<>
+				<ScrollToTop />
+				<GlossarioLayout />
+			</>
+		),
+		children: [{ index: true, element: <GlossarioPage /> }],
 	},
 	{
 		path: '/dashboard',
