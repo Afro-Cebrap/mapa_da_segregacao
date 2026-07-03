@@ -161,14 +161,23 @@ export function useIndicatorRankings(
 	const setoresApiParams = useMemo(() => {
 		if (activeLayerId !== 'setores' || !locationFilter) return null;
 		if (locationFilter.scope === 'reg_metro') {
-			return { escopo: 'reg_metro' as const, codigo: locationFilter.code };
+			return {
+				escopo: 'reg_metro' as const,
+				codigo: locationFilter.code,
+			};
 		}
 		if (locationFilter.scope === 'municipio') {
 			const info = lookups.muniInfo.get(locationFilter.code);
 			if (info?.name_metro) {
-				return { escopo: 'reg_metro' as const, codigo: info.name_metro };
+				return {
+					escopo: 'reg_metro' as const,
+					codigo: info.name_metro,
+				};
 			}
-			return { escopo: 'municipio' as const, codigo: locationFilter.code };
+			return {
+				escopo: 'municipio' as const,
+				codigo: locationFilter.code,
+			};
 		}
 		return null;
 	}, [activeLayerId, locationFilter, lookups]);

@@ -86,11 +86,11 @@ sequenceDiagram
 
 ## Páginas
 
-| Rota | Componente | Descrição |
-|---|---|---|
-| `/` | `Home.tsx` | Landing page institucional |
+| Rota         | Componente      | Descrição                              |
+| ------------ | --------------- | -------------------------------------- |
+| `/`          | `Home.tsx`      | Landing page institucional             |
 | `/dashboard` | `Dashboard.tsx` | Mapa + sidebar + toolbox (lazy loaded) |
-| `*` | `NotFound.tsx` | 404 |
+| `*`          | `NotFound.tsx`  | 404                                    |
 
 ## Deploy
 

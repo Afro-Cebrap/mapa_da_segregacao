@@ -5,8 +5,8 @@ import NewsletterForm from '@/components/layouts/NewsletterForm';
 
 const NAV_ITEMS = [
 	{ name: 'Home', to: '/' },
-	{ name: 'Sobre', to: '/sobre' },
 	{ name: 'Dados', to: '/dashboard' },
+	{ name: 'Glossário', to: '/glossario' },
 ];
 
 function XIcon({ className }: { className?: string }) {
@@ -30,35 +30,42 @@ const SOCIAL_LINKS = [
 
 function Footer() {
 	return (
-		<footer className="w-full bg-primary">
-			<div className="mx-auto flex max-w-7xl flex-col gap-12 px-6 pt-24 pb-32 md:flex-row md:items-start md:justify-between md:px-16">
+		<footer className="relative w-full bg-primary">
+			<div className="mx-auto flex max-w-7xl flex-col gap-9 px-6 pt-12 pb-10 md:px-16 md:pt-24 md:pb-32 xl:flex-row xl:items-start xl:justify-between xl:gap-12">
 				{/* Bloco da esquerda */}
 				<div className="flex flex-col">
-					{/* Wordmark + navegação */}
-					<div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:gap-16">
-						<h3 className="font-display text-4xl font-black uppercase leading-none">
-							<span className="block text-foreground">
-								MAPA DA
-							</span>
-							<span className="block text-accent-foreground">
-								SEGREGAÇÃO
-							</span>
-						</h3>
-						<nav className="flex flex-row items-center gap-8">
-							{NAV_ITEMS.map((item) => (
-								<Link
-									key={item.to}
-									to={item.to}
-									className="font-display text-2xl font-medium tracking-wide text-foreground transition-opacity hover:opacity-70"
-								>
-									{item.name}
-								</Link>
-							))}
-						</nav>
+					{/* Wordmark + navegação (desktop) / logo AFRO (mobile) */}
+					<div className="flex items-center justify-between gap-6">
+						<div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:gap-16">
+							<h3 className="font-display text-[40px] font-black uppercase leading-[0.95] md:text-4xl md:leading-none">
+								<span className="block text-foreground">
+									MAPA DA
+								</span>
+								<span className="block text-accent-foreground">
+									SEGREGAÇÃO
+								</span>
+							</h3>
+							<nav className="hidden flex-row items-center gap-8 sm:flex">
+								{NAV_ITEMS.map((item) => (
+									<Link
+										key={item.to}
+										to={item.to}
+										className="font-display text-2xl font-medium tracking-wide text-foreground transition-opacity hover:opacity-70"
+									>
+										{item.name}
+									</Link>
+								))}
+							</nav>
+						</div>
+						<img
+							src={logoAfroUrl}
+							alt="AFRO — Núcleo de Pesquisa e Formação em Raça, Gênero e Justiça Racial"
+							className="h-12 w-auto shrink-0 sm:hidden"
+						/>
 					</div>
 
 					{/* Redes sociais */}
-					<div className="mt-6 flex items-center gap-5">
+					<div className="mt-5 flex items-center gap-5 md:mt-6">
 						{SOCIAL_LINKS.map((link) => (
 							<a
 								key={link.label}
@@ -73,8 +80,21 @@ function Footer() {
 						))}
 					</div>
 
-					{/* Logo + copyright */}
-					<div className="mt-10 flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-12">
+					{/* Navegação (mobile) */}
+					<nav className="mt-7 flex flex-row items-center gap-8 sm:hidden">
+						{NAV_ITEMS.map((item) => (
+							<Link
+								key={item.to}
+								to={item.to}
+								className="font-display text-[22px] font-semibold tracking-wide text-foreground transition-opacity hover:opacity-70"
+							>
+								{item.name}
+							</Link>
+						))}
+					</nav>
+
+					{/* Logo + copyright (desktop) */}
+					<div className="mt-10 hidden flex-col gap-5 sm:flex sm:flex-row sm:items-center sm:gap-12">
 						<img
 							src={logoAfroUrl}
 							alt="AFRO — Núcleo de Pesquisa e Formação em Raça, Gênero e Justiça Racial"
@@ -88,9 +108,15 @@ function Footer() {
 				</div>
 
 				{/* Bloco da direita: newsletter */}
-				<div className="w-full shrink-0 md:w-112">
+				<div className="w-full max-w-md shrink-0 xl:w-112">
 					<NewsletterForm />
 				</div>
+
+				{/* Copyright (mobile) */}
+				<p className="text-sm text-accent-foreground/90 sm:hidden">
+					Copyright© 2026 Mapa da Segregação. Desenvolvido por Tavus
+					Data.
+				</p>
 			</div>
 		</footer>
 	);

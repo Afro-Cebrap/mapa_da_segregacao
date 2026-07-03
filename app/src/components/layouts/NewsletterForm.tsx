@@ -10,8 +10,8 @@ function NewsletterForm() {
 	};
 
 	return (
-		<div className="flex h-full min-h-48 flex-col justify-center bg-accent p-7">
-			<h3 className="font-display text-3xl font-bold leading-9 text-primary">
+		<div className="flex h-full min-h-48 flex-col justify-center bg-accent p-6 md:p-7">
+			<h3 className="font-display text-3xl font-bold normal-case leading-9 text-primary">
 				Assine a nossa newsletter
 			</h3>
 			<p className="mt-2 max-w-64 text-sm leading-5 text-accent-foreground">
@@ -37,7 +37,7 @@ function NewsletterForm() {
 				/>
 				<Button
 					type="submit"
-					className="h-9 shrink-0 rounded-none bg-primary px-5 font-display font-medium tracking-wide text-primary-foreground hover:bg-primary/90"
+					className="mt-1 h-10 shrink-0 self-start rounded-none bg-primary px-5 font-display font-medium tracking-wide text-primary-foreground hover:bg-primary/90 sm:mt-0 sm:h-9 sm:self-auto"
 				>
 					Enviar
 				</Button>
