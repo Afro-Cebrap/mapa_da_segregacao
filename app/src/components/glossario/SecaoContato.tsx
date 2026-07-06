@@ -19,8 +19,9 @@ export function SecaoContato() {
 			aria-labelledby="contato-titulo"
 			className="max-w-[890px] scroll-mt-24"
 		>
-			{/* Título + texto (alinhados pela base, como no Figma) */}
-			<div className="flex flex-col gap-8 md:flex-row md:items-end md:gap-24">
+			{/* Título + texto (alinhados pela base, como no Figma). Lado a lado
+			    só a partir de lg — antes disso não há largura para os dois. */}
+			<div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:gap-24">
 				<h2
 					id="contato-titulo"
 					className="font-display uppercase leading-[0.9] text-primary"
@@ -43,12 +44,15 @@ export function SecaoContato() {
 
 			{/* Formulário: campos (esquerda) · textarea · botão.
 			    A textarea estica (items-stretch) para ter a mesma altura da
-			    coluna dos 3 campos somados; o botão fica colado na base. */}
+			    coluna dos 3 campos somados; o botão fica colado na base.
+			    A linha (282 + 484 + botão ≈ 890px) só cabe a partir de lg;
+			    abaixo disso o formulário empilha limitado à largura da
+			    textarea, com o botão alinhado à borda direita dela. */}
 			<form
 				onSubmit={handleSubmit}
-				className="mt-14 flex flex-col items-start gap-6 md:flex-row md:items-stretch"
+				className="mt-14 flex w-full max-w-[484px] flex-col items-start gap-6 lg:max-w-none lg:flex-row lg:items-stretch"
 			>
-				<div className="flex w-[282px] max-w-full flex-col gap-4">
+				<div className="flex w-full flex-col gap-4 lg:w-[282px]">
 					<div className={campoBox}>
 						<input
 							type="text"
@@ -77,7 +81,7 @@ export function SecaoContato() {
 				<textarea
 					placeholder="Digite aqui sua mensagem..."
 					aria-label="Mensagem"
-					className="min-h-[146px] w-full max-w-[484px] resize-none self-stretch bg-background p-4 font-display text-xl text-foreground placeholder:text-foreground/50 focus:outline-none md:w-[484px]"
+					className="min-h-[146px] w-full max-w-[484px] resize-none self-stretch bg-background p-4 font-display text-xl text-foreground placeholder:text-foreground/50 focus:outline-none lg:w-[484px]"
 				/>
 
 				<button

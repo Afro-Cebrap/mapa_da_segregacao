@@ -26,10 +26,13 @@ export function GlossarioHero({ busca, onBuscaChange }: GlossarioHeroProps) {
 				</p>
 			</div>
 
-			{/* Introdução em duas colunas */}
-			<div className="flex flex-col gap-12 md:flex-row md:gap-20">
+			{/* Introdução em duas colunas. As colunas esticam à mesma altura e
+			    os controles (busca / botão) ancoram na base, na mesma linha,
+			    como no Figma — mesmo que os parágrafos quebrem em número
+			    diferente de linhas. */}
+			<div className="flex flex-col gap-12 md:flex-row md:items-stretch md:gap-20">
 				{/* Esquerda: texto + busca */}
-				<div className="flex flex-col gap-6 md:w-[484px]">
+				<div className="flex flex-col gap-6 md:w-[484px] md:justify-between">
 					<p className="text-xl leading-[1.42] text-accent-foreground">
 						Explore as nomenclaturas por meio da disposição
 						alfabética ou digite abaixo a palavra que deseja
@@ -48,7 +51,7 @@ export function GlossarioHero({ busca, onBuscaChange }: GlossarioHeroProps) {
 										onBuscaChange(event.target.value)
 									}
 									placeholder="Busca..."
-									className="w-full border-0 border-b border-foreground/30 bg-transparent pb-1 font-display text-xl text-foreground placeholder:text-foreground/50 focus:border-primary focus:outline-none"
+									className="w-full border-0 border-b border-foreground/30 bg-transparent pb-2 font-display text-xl text-foreground placeholder:text-foreground/50 focus:border-primary focus:outline-none"
 								/>
 							</label>
 						</div>
@@ -60,7 +63,7 @@ export function GlossarioHero({ busca, onBuscaChange }: GlossarioHeroProps) {
 				</div>
 
 				{/* Direita: texto + botão de contato */}
-				<div className="flex flex-col items-start gap-6 md:w-[482px]">
+				<div className="flex flex-col items-start gap-6 md:w-[482px] md:justify-between">
 					<p className="text-xl leading-[1.42] text-accent-foreground">
 						Caso ainda tenha dúvidas, ao final da página você
 						encontra uma seção de contato onde pode nos mandar uma
@@ -68,7 +71,7 @@ export function GlossarioHero({ busca, onBuscaChange }: GlossarioHeroProps) {
 					</p>
 					<a
 						href="#contato"
-						className="inline-flex items-center justify-center bg-primary px-3 py-3 font-display text-xl font-bold tracking-wide text-marca-verde-escuro transition-opacity hover:opacity-90"
+						className="inline-flex items-center justify-center bg-primary p-3 font-display text-xl font-bold tracking-wide text-marca-verde-escuro transition-opacity hover:opacity-90"
 					>
 						Queremos te ouvir
 					</a>

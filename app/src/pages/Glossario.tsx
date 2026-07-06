@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
 import { usePageMeta } from '@/hooks/usePageMeta';
+import topLinesUrl from '@/assets/top-lines.svg';
+import bottomLinesUrl from '@/assets/bottom-lines2.svg';
 import { TERMOS_GLOSSARIO, normalizar, primeiraLetra } from '@/data/glossario';
 import { GlossarioHero } from '@/components/glossario/GlossarioHero';
 import { AlfabetoNav } from '@/components/glossario/AlfabetoNav';
@@ -46,20 +48,48 @@ function GlossarioPage() {
 	};
 
 	return (
-		<div className="mx-auto max-w-7xl px-6 pt-12 pb-24 md:px-16 md:pt-16 md:pb-32">
-			<GlossarioHero busca={busca} onBuscaChange={setBusca} />
+		<div className="relative overflow-x-clip">
+			{/* Ilustração: leque de linhas no canto superior direito (desktop).
+			   Sobe atrás do header (transparente) até o topo da página, como no
+			   Figma (-top-30 compensa a altura do header). */}
+			<img
+				src={topLinesUrl}
+				alt=""
+				aria-hidden="true"
+				className="pointer-events-none absolute -top-30 right-0 hidden w-64 lg:block xl:w-120 2xl:w-[589px]"
+			/>
 
-			<div className="mt-24 flex flex-col gap-14 md:mt-32">
-				<AlfabetoNav
-					letraAtiva={letraAtiva}
-					letrasDisponiveis={LETRAS_DISPONIVEIS}
-					onSelect={handleSelectLetra}
+			{/* Ilustração: leque de linhas na borda direita, sobre a seção de
+			   contato. O wrapper overflow-hidden termina onde o footer começa,
+			   recortando a base do leque no limite do laranja — assim o offset
+			   negativo pode descer a arte sem a ponta escapar por baixo do
+			   footer. */}
+			<div
+				aria-hidden="true"
+				className="pointer-events-none absolute inset-0 hidden overflow-hidden lg:block"
+			>
+				<img
+					src={bottomLinesUrl}
+					alt=""
+					className="absolute right-0 -bottom-[315px] w-[460px] xl:-bottom-[480px] xl:w-[780px] 2xl:-bottom-[600px] 2xl:w-[940px]"
 				/>
-				<ListaTermos termos={termosVisiveis} />
 			</div>
 
-			<div className="mt-28 md:mt-40">
-				<SecaoContato />
+			<div className="relative z-10 mx-auto max-w-7xl px-6 pt-12 pb-24 md:px-16 md:pt-16 md:pb-32">
+				<GlossarioHero busca={busca} onBuscaChange={setBusca} />
+
+				<div className="mt-24 flex flex-col gap-14 md:mt-32">
+					<AlfabetoNav
+						letraAtiva={letraAtiva}
+						letrasDisponiveis={LETRAS_DISPONIVEIS}
+						onSelect={handleSelectLetra}
+					/>
+					<ListaTermos termos={termosVisiveis} />
+				</div>
+
+				<div className="mt-28 md:mt-40">
+					<SecaoContato />
+				</div>
 			</div>
 		</div>
 	);

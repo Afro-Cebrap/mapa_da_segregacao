@@ -42,12 +42,17 @@ function HomePage() {
 	return (
 		<div className="relative overflow-x-clip">
 			{/* Ilustração: mapa do Brasil em linhas radiais (hero, desktop).
-			   Sobe atrás do header (transparente) como no Figma. */}
+			   Sobe atrás do header (transparente) como no Figma. O offset da
+			   direita encolhe mais rápido que a viewport (60vw − 36rem): em
+			   1440px vale os 288px do right-72 (trava de 18rem nas telas
+			   maiores) e cai a ~38px em 1024px — o mapa desliza para a direita
+			   conforme a tela diminui, mantendo pequena a sobreposição
+			   proposital com o título. */}
 			<img
 				src={brasilArtUrl}
-				alt=""
+				alt="Brasil estilizado em linhas radiais"
 				aria-hidden="true"
-				className="pointer-events-none absolute -top-20 right-16 -z-10 hidden w-[50vw] max-w-[720px] lg:block"
+				className="pointer-events-none absolute -top-20 lg:right-4 xl:right-28 2xl:right-48 -z-10 hidden w-[56vw] max-w-[820px] lg:block xl:w-[50vw]"
 			/>
 
 			{/* Hero */}
@@ -80,12 +85,12 @@ function HomePage() {
 				   o conteúdo das seções fica acima via z-10. */}
 				<img
 					src={leftLinesUrl}
-					alt=""
+					alt="Linhas radiais estilizadas"
 					aria-hidden="true"
-					className="pointer-events-none absolute top-56 -left-[calc((100vw-100%)/2)] z-[1] hidden w-40 lg:block xl:w-72 2xl:w-[392px]"
+					className="pointer-events-none absolute top-32 -left-[calc((100vw-100%)/2)] z-[1] hidden w-40 lg:block xl:w-72 2xl:w-[392px]"
 				/>
 				<h2 className="relative z-10 font-display text-[45px] font-black uppercase leading-none text-foreground md:text-6xl">
-					<span className="block font-medium md:font-black">
+					<span className="block font-medium">
 						FERRAMENTA
 					</span>
 					<span className="block ml-[78px] md:ml-24">
@@ -127,7 +132,7 @@ function HomePage() {
 				   (base ≈ topo do painel + 1222px em todas as larguras). */}
 				<img
 					src={bottomLinesUrl}
-					alt=""
+					alt="Linhas radiais estilizadas"
 					aria-hidden="true"
 					className="pointer-events-none absolute top-[677px] right-0 hidden w-32 max-w-none lg:block xl:top-[541px] xl:w-40 2xl:top-32 2xl:w-[257px]"
 				/>
