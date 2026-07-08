@@ -7,6 +7,8 @@ import { GlossarioHero } from '@/components/glossario/GlossarioHero';
 import { AlfabetoNav } from '@/components/glossario/AlfabetoNav';
 import { ListaTermos } from '@/components/glossario/ListaTermos';
 import { SecaoContato } from '@/components/glossario/SecaoContato';
+import { MotionConfig, motion, useReducedMotion } from 'motion/react';
+import { Reveal } from '@/components/Reveal';
 
 // Conjunto de letras iniciais que possuem termos.
 const LETRAS_DISPONIVEIS = new Set(
@@ -25,6 +27,7 @@ function GlossarioPage() {
 
 	const [letraAtiva, setLetraAtiva] = useState(PRIMEIRA_LETRA);
 	const [busca, setBusca] = useState('');
+	const reduzirMovimento = useReducedMotion();
 
 	// Com busca ativa, filtra por termo/definição em toda a lista; sem busca,
 	// mostra apenas os termos da letra selecionada.
@@ -48,50 +51,69 @@ function GlossarioPage() {
 	};
 
 	return (
-		<div className="relative overflow-x-clip">
-			{/* Ilustração: leque de linhas no canto superior direito (desktop).
-			   Sobe atrás do header (transparente) até o topo da página, como no
-			   Figma (-top-30 compensa a altura do header). */}
-			<img
-				src={topLinesUrl}
-				alt=""
-				aria-hidden="true"
-				className="pointer-events-none absolute -top-30 right-0 hidden w-64 lg:block xl:w-120 2xl:w-[589px]"
-			/>
-
-			{/* Ilustração: leque de linhas na borda direita, sobre a seção de
-			   contato. O wrapper overflow-hidden termina onde o footer começa,
-			   recortando a base do leque no limite do laranja — assim o offset
-			   negativo pode descer a arte sem a ponta escapar por baixo do
-			   footer. */}
-			<div
-				aria-hidden="true"
-				className="pointer-events-none absolute inset-0 hidden overflow-hidden lg:block"
-			>
+		<MotionConfig reducedMotion="user">
+			<div className="relative overflow-x-clip">
+				{/* Ilustração: leque de linhas no canto superior direito (desktop).
+				   Sobe atrás do header (transparente) até o topo da página, como no
+				   Figma (-top-30 compensa a altura do header). */}
 				<img
-					src={bottomLinesUrl}
+					src={topLinesUrl}
 					alt=""
-					className="absolute right-0 -bottom-[315px] w-[460px] xl:-bottom-[480px] xl:w-[780px] 2xl:-bottom-[600px] 2xl:w-[940px]"
+					aria-hidden="true"
+					className="pointer-events-none absolute -top-30 right-0 hidden w-64 lg:block xl:w-120 2xl:w-[589px]"
 				/>
-			</div>
 
-			<div className="relative z-10 mx-auto max-w-7xl px-6 pt-12 pb-24 md:px-16 md:pt-16 md:pb-32">
-				<GlossarioHero busca={busca} onBuscaChange={setBusca} />
-
-				<div className="mt-24 flex flex-col gap-14 md:mt-32">
-					<AlfabetoNav
-						letraAtiva={letraAtiva}
-						letrasDisponiveis={LETRAS_DISPONIVEIS}
-						onSelect={handleSelectLetra}
+				{/* Ilustração: leque de linhas na borda direita, sobre a seção de
+				   contato. O wrapper overflow-hidden termina onde o footer começa,
+				   recortando a base do leque no limite do laranja — assim o offset
+				   negativo pode descer a arte sem a ponta escapar por baixo do
+				   footer. */}
+				<div
+					aria-hidden="true"
+					className="pointer-events-none absolute inset-0 hidden overflow-hidden lg:block"
+				>
+					<img
+						src={bottomLinesUrl}
+						alt=""
+						className="absolute right-0 -bottom-[315px] w-[460px] xl:-bottom-[480px] xl:w-[780px] 2xl:-bottom-[600px] 2xl:w-[940px]"
 					/>
-					<ListaTermos termos={termosVisiveis} />
 				</div>
 
-				<div className="mt-28 md:mt-40">
-					<SecaoContato />
+				<div className="relative z-10 mx-auto max-w-7xl px-6 pt-12 pb-24 md:px-16 md:pt-16 md:pb-32">
+					{/* Hero — anima na carga da página. */}
+					<Reveal>
+						<GlossarioHero busca={busca} onBuscaChange={setBusca} />
+					</Reveal>
+
+					<Reveal className="mt-24 flex flex-col gap-14 md:mt-32">
+						<AlfabetoNav
+							letraAtiva={letraAtiva}
+							letrasDisponiveis={LETRAS_DISPONIVEIS}
+							onSelect={handleSelectLetra}
+						/>
+						{/* Fade rápido a cada mudança de filtro: a key derivada de
+						   busca/letra re-monta o wrapper e reexecuta a animação.
+						   Sem animação de saída — a troca permanece imediata. */}
+						<motion.div
+							key={
+								busca.trim()
+									? `busca:${busca.trim()}`
+									: `letra:${letraAtiva}`
+							}
+							initial={reduzirMovimento ? false : { opacity: 0 }}
+							animate={{ opacity: 1 }}
+							transition={{ duration: 0.25, ease: 'easeOut' }}
+						>
+							<ListaTermos termos={termosVisiveis} />
+						</motion.div>
+					</Reveal>
+
+					<Reveal className="mt-28 md:mt-40">
+						<SecaoContato />
+					</Reveal>
 				</div>
 			</div>
-		</div>
+		</MotionConfig>
 	);
 }
 
