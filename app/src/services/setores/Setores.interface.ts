@@ -8,7 +8,6 @@ export interface SegregationProperties {
 	name_district: string | null;
 	code_subdistrict: number | null;
 	name_subdistrict: string | null;
-	code_weighting: number | null;
 	zone: string | null;
 	code_state: string | null;
 	abbrev_state: string | null;

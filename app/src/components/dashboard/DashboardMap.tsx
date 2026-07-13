@@ -41,6 +41,11 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import MapPopup from '@/components/dashboard/MapPopup';
 import MapLoadingOverlay from '@/components/dashboard/MapLoadingOverlay';
 import MapTilesSpinner from '@/components/dashboard/MapTilesSpinner';
+import {
+	classifyPosition,
+	isRankedMetric,
+	useIndicatorRankings,
+} from '@/hooks/useIndicatorRankings';
 import { useMapLoadingState } from '@/hooks/useMapLoadingState';
 import type { DashboardMapProps, HoverInfo } from '@/types/dashboard.types';
 
@@ -92,6 +97,7 @@ interface HoveredFeatureState {
 }
 
 function DashboardMap({
+	censusYear,
 	activeMetric,
 	metricsConfig,
 	hoverInfo,
@@ -106,6 +112,19 @@ function DashboardMap({
 }: DashboardMapProps) {
 	const { theme } = useTheme();
 	const isDark = theme === 'dark';
+	// Mesmo ranking da sidebar (query compartilhada/deduplicada): fornece o
+	// "nível" (escopo) e a posição por tercis da localidade sob hover.
+	const { getRankings, levelLabel } = useIndicatorRankings(
+		activeLayerId,
+		locationFilter,
+		censusYear,
+	);
+	const hoverPositionLabel =
+		hoverInfo && isRankedMetric(activeMetric)
+			? classifyPosition(
+					getRankings(hoverInfo.properties)?.[activeMetric] ?? null,
+				)
+			: null;
 	const hoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const hoveredFeatureRef = useRef<HoveredFeatureState | null>(null);
 	const [escolaHover, setEscolaHover] = useState<EscolaHoverState | null>(
@@ -175,8 +194,8 @@ function DashboardMap({
 	// dos rótulos. No tema escuro caímos para o topo da pilha (sem beforeId).
 	const muniHighlightBeforeId = isDark ? undefined : 'rotulo-cidades';
 
-	const { data: lookups } = useLocationLookups();
-	const flyToLocation = useFlyToLocation(mapRef);
+	const { data: lookups } = useLocationLookups(censusYear);
+	const flyToLocation = useFlyToLocation(mapRef, censusYear);
 
 	const escolasGeojson = useEscolas(activeEscolas);
 	const hasEscolas = escolasGeojson.features.length > 0;
@@ -188,13 +207,14 @@ function DashboardMap({
 	// Sem GeoJSON em memoria, o filtro de localizacao e o realce da selecao
 	// viram expressoes de filtro aplicadas direto nas layers da fonte vetorial.
 	const tileUrl = useMemo(() => {
-		const base = getSegregationTileUrl(activeLayerConfig.endpoint);
+		const base = getSegregationTileUrl(activeLayerConfig.endpoint, censusYear);
 		// Só setores filtra no servidor; municípios/RM seguem com a URL base.
 		if (activeLayerId !== 'setores') return base;
 		const param = buildSetoresTileFilterParam(locationFilter, lookups);
 		if (!param) return base;
-		return `${base}?${new URLSearchParams(param).toString()}`;
-	}, [activeLayerConfig.endpoint, activeLayerId, locationFilter, lookups]);
+		const separator = base.includes('?') ? '&' : '?';
+		return `${base}${separator}${new URLSearchParams(param).toString()}`;
+	}, [activeLayerConfig.endpoint, activeLayerId, censusYear, locationFilter, lookups]);
 	const tileLocationFilter = useMemo(
 		() => buildTileLocationFilter(activeLayerId, locationFilter, lookups),
 		[activeLayerId, locationFilter, lookups],
@@ -269,8 +289,8 @@ function DashboardMap({
 	const showMuniBoundary =
 		Array.isArray(muniBoundaryFilter) && muniBoundaryFilter[0] === '==';
 	const muniBoundaryTileUrl = useMemo(
-		() => getSegregationTileUrl('municipios'),
-		[],
+		() => getSegregationTileUrl('municipios', censusYear),
+		[censusYear],
 	);
 	const tileMuniHighlightLayer = useMemo(
 		() =>
@@ -556,6 +576,8 @@ function DashboardMap({
 						hoverInfo={hoverInfo}
 						activeMetric={activeMetric}
 						metricsConfig={metricsConfig}
+						levelLabel={levelLabel}
+						positionLabel={hoverPositionLabel}
 					/>
 				)}
 

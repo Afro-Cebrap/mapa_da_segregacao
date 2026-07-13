@@ -32,7 +32,6 @@ def simplificar_no_banco(tolerancia, tabela_origem, tabela_destino, schema='dado
             name_district,
             code_subdistrict,
             name_subdistrict,
-            code_weighting,
             zone,
             code_state,
             abbrev_state,
@@ -41,6 +40,8 @@ def simplificar_no_banco(tolerancia, tabela_origem, tabela_destino, schema='dado
             name_region,
             year,
             name_metro,
+            unit_id,
+            unit_type,
             dissimilarity,
             index_h,
             exp_branca_pp,
@@ -84,10 +85,10 @@ def simplificar_no_banco(tolerancia, tabela_origem, tabela_destino, schema='dado
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Simplifica geometrias usando SQL nativo PostGIS.')
     parser.add_argument('tolerancia', type=float, help='Nível de simplificação (ex: 0.001)')
-    parser.add_argument('--origem', type=str, default='setores', help='Tabela de origem')
+    parser.add_argument('--origem', type=str, default='setores_2010', help='Tabela de origem (ex: setores_2010)')
     parser.add_argument('--destino', type=str, help='Tabela de destino')
 
     args = parser.parse_args()
-    tabela_out = args.destino if args.destino else f"{args.origem}_simplificada"
+    tabela_out = args.destino if args.destino else f"{args.origem}_simplified"
 
     simplificar_no_banco(args.tolerancia, args.origem, tabela_out)

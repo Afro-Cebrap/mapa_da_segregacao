@@ -8,7 +8,11 @@ import type {
 	RankingIndicadoresRow,
 	SegregationProperties,
 } from '@/services/setores/Setores.interface';
-import type { LayerId, LocationFilter } from '@/types/dashboard.types';
+import type {
+	CensusYear,
+	LayerId,
+	LocationFilter,
+} from '@/types/dashboard.types';
 
 export type RankedMetric =
 	| 'dissimilarity'
@@ -140,9 +144,54 @@ function computeRankings(
 	return { rankings: byKey, stats };
 }
 
+export function isRankedMetric(metric: string): metric is RankedMetric {
+	return RANKED_METRICS.some((m) => m.key === metric);
+}
+
+// Posição da localidade por tercis do escopo atual (percentis 33,33/66,66).
+// O ranking é ordenado do maior para o menor valor (rank 1 = maior), então o
+// primeiro terço do ranking é "Alto" e o último terço é "Baixo".
+export function classifyPosition(
+	rank: IndicatorRank | null,
+): 'Baixo' | 'Médio' | 'Alto' | null {
+	if (!rank || rank.total <= 0) return null;
+	const fracao = rank.rank / rank.total;
+	if (fracao <= 1 / 3) return 'Alto';
+	if (fracao <= 2 / 3) return 'Médio';
+	return 'Baixo';
+}
+
+// Rótulo do escopo ("nível") do ranking: Brasil, RM, Município ou o nome da
+// localidade filtrada. Compartilhado entre a sidebar (PlaceDetails) e o
+// tooltip de hover do mapa (MapPopup).
+export function useLevelLabel(
+	activeLayerId: LayerId,
+	locationFilter: LocationFilter | null,
+	year: CensusYear,
+): string {
+	const { data: lookups } = useLocationLookups(year);
+
+	return useMemo(() => {
+		if (!locationFilter) return 'Brasil';
+		if (activeLayerId === 'setores') {
+			let rmName: string | null = null;
+			if (locationFilter.scope === 'reg_metro') {
+				rmName = locationFilter.name;
+			} else if (locationFilter.scope === 'municipio') {
+				rmName =
+					lookups.muniInfo.get(locationFilter.code)?.name_metro ??
+					null;
+			}
+			return rmName !== null ? 'RM' : 'Município';
+		}
+		return locationFilter.name;
+	}, [activeLayerId, locationFilter, lookups]);
+}
+
 export function useIndicatorRankings(
 	activeLayerId: LayerId,
 	locationFilter: LocationFilter | null,
+	year: CensusYear,
 ): {
 	getRankings: (props: SegregationProperties) => RankingsByMetric | null;
 	stats: StatsByMetric;
@@ -153,7 +202,7 @@ export function useIndicatorRankings(
 		(l) => l.id === activeLayerId,
 	)?.endpoint;
 
-	const { data: lookups } = useLocationLookups();
+	const { data: lookups } = useLocationLookups(year);
 
 	// Para setores: resolve o escopo de ranking (RM ou município) antes da
 	// requisição, para filtrar no servidor e reduzir o payload de ~316k linhas
@@ -190,10 +239,12 @@ export function useIndicatorRankings(
 			endpoint,
 			setoresApiParams?.escopo ?? null,
 			setoresApiParams?.codigo ?? null,
+			year,
 		],
 		queryFn: () =>
 			setoresService.listarIndicadores(
 				endpoint!,
+				year,
 				setoresApiParams?.escopo,
 				setoresApiParams?.codigo,
 			),
@@ -204,31 +255,15 @@ export function useIndicatorRankings(
 		staleTime: 1000 * 60 * 60,
 	});
 
-	const { rankings, stats, levelLabel } = useMemo(() => {
-		// levelLabel: calculado independente de os dados já terem chegado,
-		// para que o cabeçalho mostre o escopo correto mesmo durante o loading.
-		let levelLabel: string;
-		if (!locationFilter) {
-			levelLabel = 'Brasil';
-		} else if (activeLayerId === 'setores') {
-			let rmName: string | null = null;
-			if (locationFilter.scope === 'reg_metro') {
-				rmName = locationFilter.name;
-			} else if (locationFilter.scope === 'municipio') {
-				rmName =
-					lookups.muniInfo.get(locationFilter.code)?.name_metro ??
-					null;
-			}
-			levelLabel = rmName !== null ? 'RM' : 'Município';
-		} else {
-			levelLabel = locationFilter.name;
-		}
+	// levelLabel: calculado independente de os dados já terem chegado,
+	// para que o cabeçalho mostre o escopo correto mesmo durante o loading.
+	const levelLabel = useLevelLabel(activeLayerId, locationFilter, year);
 
+	const { rankings, stats } = useMemo(() => {
 		if (!layerQuery.data)
 			return {
 				rankings: new Map<string, RankingsByMetric>(),
 				stats: emptyStats(),
-				levelLabel,
 			};
 
 		let rows = layerQuery.data;
@@ -246,7 +281,7 @@ export function useIndicatorRankings(
 			}
 		}
 
-		return { ...computeRankings(rows, activeLayerId), levelLabel };
+		return computeRankings(rows, activeLayerId);
 	}, [layerQuery.data, locationFilter, activeLayerId, lookups]);
 
 	return {

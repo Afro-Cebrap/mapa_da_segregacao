@@ -99,7 +99,7 @@ function Dashboard() {
 		);
 	}, []);
 
-	const flyToLocation = useFlyToLocation(mapRef);
+	const flyToLocation = useFlyToLocation(mapRef, censusYear);
 
 	// Escolher uma localidade no filtro ou na escala de setores também enquadra
 	// ("tp") o mapa nela. Limpar o filtro (null) na escala de setores não faz
@@ -231,7 +231,7 @@ function Dashboard() {
 	// com base nos dados reais do escopo relevante:
 	//   · município em RM  → todos os setores da RM inteira
 	//   · município isolado → apenas os setores daquele município
-	const { data: lookups } = useLocationLookups();
+	const { data: lookups } = useLocationLookups(censusYear);
 
 	const escalaParams = useMemo(() => {
 		if (activeLayerId !== 'setores' || !locationFilter) return null;
@@ -264,6 +264,7 @@ function Dashboard() {
 		activeMetric,
 		escalaParams?.escopo ?? null,
 		escalaParams?.codigo ?? null,
+		censusYear,
 	);
 
 	const activeMetricsConfig = useMemo((): MetricsConfigMap => {
@@ -316,6 +317,7 @@ function Dashboard() {
 
 			<div className="relative flex-1 h-full overflow-hidden">
 				<DashboardMap
+					censusYear={censusYear}
 					activeMetric={activeMetric}
 					metricsConfig={activeMetricsConfig}
 					hoverInfo={hoverInfo}
@@ -338,6 +340,7 @@ function Dashboard() {
 
 				{!isMobile && (
 					<GeometryDetailsPanel
+						censusYear={censusYear}
 						selectedGeometry={selectedGeometry}
 						onClose={() => setSelectedGeometry(null)}
 						activeLayerId={activeLayerId}
@@ -360,7 +363,7 @@ function Dashboard() {
 
 				{isMobile && (
 					<>
-						<MobileTopBar mapRef={mapRef} />
+						<MobileTopBar mapRef={mapRef} censusYear={censusYear} />
 
 						{/* Legenda visível no mapa (acima do peek da folha); ao
 						    expandir a folha ela fica coberta. */}
@@ -395,6 +398,7 @@ function Dashboard() {
 						>
 							{selectedGeometry && sheetView === 'dados' ? (
 								<PlaceDetails
+									censusYear={censusYear}
 									selectedGeometry={selectedGeometry}
 									onClose={() => setSelectedGeometry(null)}
 									activeLayerId={activeLayerId}
@@ -410,6 +414,7 @@ function Dashboard() {
 										onDark
 									/>
 									<SidebarControls
+										censusYear={censusYear}
 										activeMetric={activeMetric}
 										onMetricChange={setActiveMetric}
 										activeLayerId={activeLayerId}

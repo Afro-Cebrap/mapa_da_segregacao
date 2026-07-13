@@ -151,3 +151,49 @@ def test_resolver_default_mantem_limite_8():
     assert geo_comum.resolver_tabela_por_zoom(
         db, 7, "base", "ultra", "medio"
     ) == "ultra"
+
+
+def test_campos_segreg_sem_code_weighting():
+    assert "code_weighting" not in geo_comum.CAMPOS_SEGREG
+    assert "unit_type" not in geo_comum.CAMPOS_SEGREG
+    assert "unit_id" not in geo_comum.CAMPOS_SEGREG
+
+
+class _CapturingDB:
+    """Captura os parametros da ultima chamada a execute(), sem tocar banco real."""
+
+    def __init__(self):
+        self.ultimo_params = None
+
+    def execute(self, sql, params):
+        self.ultimo_params = params
+        return _FakeResult(None)
+
+
+def test_obter_tile_mvt_aplica_area_minima_por_padrao():
+    # Comportamento default (municipios/reg_metro): corte sub-pixel ligado.
+    db = _CapturingDB()
+    geo_comum.obter_tile_mvt(
+        db,
+        tabela="dados.municipios_2010",
+        z=5, x=1, y=1,
+        feature_id_sql="t.id",
+        colunas_propriedades=("t.nome",),
+    )
+    assert db.ultimo_params["area_minima"] == area_minima_para_zoom(5)
+    assert db.ultimo_params["area_minima"] > 0.0
+
+
+def test_obter_tile_mvt_filtrar_area_minima_false_desliga_corte_sub_pixel():
+    # Setores: geometrias pequenas (setores censitarios densos) precisam
+    # continuar visiveis mesmo em zoom baixo/medio, entao o corte e desligado.
+    db = _CapturingDB()
+    geo_comum.obter_tile_mvt(
+        db,
+        tabela="dados.setores_2010",
+        z=5, x=1, y=1,
+        feature_id_sql="t.id",
+        colunas_propriedades=("t.nome",),
+        filtrar_area_minima=False,
+    )
+    assert db.ultimo_params["area_minima"] == 0.0

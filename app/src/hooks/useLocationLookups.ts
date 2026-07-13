@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { setoresService } from '@/services/setores/Setores.services';
 import type { MunicipioListaDto } from '@/services/setores/Setores.interface';
 import type { Bbox } from '@/lib/geo';
+import type { CensusYear } from '@/types/dashboard.types';
 
 export interface LocationLookups {
 	// code_state → Set<code_muni>
@@ -111,13 +112,13 @@ function buildLookups(items: MunicipioListaDto[]): LocationLookups {
 	};
 }
 
-export function useLocationLookups(): {
+export function useLocationLookups(year: CensusYear): {
 	data: LocationLookups;
 	isLoading: boolean;
 } {
 	const query = useQuery({
-		queryKey: ['municipios', 'lista'],
-		queryFn: () => setoresService.listarMunicipiosLista(),
+		queryKey: ['municipios', 'lista', year],
+		queryFn: () => setoresService.listarMunicipiosLista(year),
 		staleTime: 1000 * 60 * 60,
 	});
 

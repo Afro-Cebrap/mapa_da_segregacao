@@ -12,7 +12,6 @@ class SegregBaseSchema(BaseModel):
     name_district: Optional[str] = None
     code_subdistrict: Optional[float] = None
     name_subdistrict: Optional[str] = None
-    code_weighting: Optional[float] = None
     zone: Optional[str] = None
     code_state: Optional[str] = None
     abbrev_state: Optional[str] = None

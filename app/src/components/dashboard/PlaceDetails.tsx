@@ -4,12 +4,14 @@ import { useIndicatorRankings } from '@/hooks/useIndicatorRankings';
 import { formatNumber, formatPercent } from '@/lib/format';
 import { getComposition, getEntityName } from '@/lib/segregation';
 import type {
+	CensusYear,
 	LayerId,
 	LocationFilter,
 	SelectedGeometryInfo,
 } from '@/types/dashboard.types';
 
 interface PlaceDetailsProps {
+	censusYear: CensusYear;
 	selectedGeometry: SelectedGeometryInfo;
 	onClose: () => void;
 	activeLayerId: LayerId;
@@ -22,6 +24,7 @@ interface PlaceDetailsProps {
 // Ranking de Indicadores). Sem contêiner posicional: a sidebar flutuante
 // (desktop) e a folha inferior (mobile) fornecem o invólucro.
 function PlaceDetails({
+	censusYear,
 	selectedGeometry,
 	onClose,
 	activeLayerId,
@@ -34,7 +37,7 @@ function PlaceDetails({
 		stats: rankingStats,
 		isLoading: isRankingLoading,
 		levelLabel,
-	} = useIndicatorRankings(activeLayerId, locationFilter);
+	} = useIndicatorRankings(activeLayerId, locationFilter, censusYear);
 
 	const { properties, layerLabel } = selectedGeometry;
 	const composition = getComposition(properties);

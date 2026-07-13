@@ -6,32 +6,32 @@ from repositories import setores_repository
 from schemas.setores_schema import SetoresSchema
 
 
-def obter_setores(db: Session) -> List[SetoresSchema]:
-    municipios = setores_repository.obter_setores(db)
-    return municipios
+def obter_setores(db: Session, ano: int) -> List[SetoresSchema]:
+    return setores_repository.obter_setores(db, ano)
 
 
 def obter_setores_indicadores(
     db: Session,
+    ano: int,
     escopo: str | None = None,
     codigo: str | None = None,
 ):
-    return setores_repository.obter_setores_indicadores(db, escopo=escopo, codigo=codigo)
+    return setores_repository.obter_setores_indicadores(
+        db, ano, escopo=escopo, codigo=codigo,
+    )
 
 
 def obter_setores_de_municipio(
     db: Session,
+    ano: int,
     cod_municipio: str,
 ) -> List[SetoresSchema]:
-    municipios = setores_repository.obter_setores_por_municipio(
-        db,
-        cod_municipio,
-    )
-    return municipios
+    return setores_repository.obter_setores_por_municipio(db, ano, cod_municipio)
 
 
 def obter_tile_setores(
     db: Session,
+    ano: int,
     z: int,
     x: int,
     y: int,
@@ -39,17 +39,19 @@ def obter_tile_setores(
     cod_municipio: str | None = None,
 ):
     return setores_repository.obter_tile_mvt(
-        db, z, x, y, metro=metro, cod_municipio=cod_municipio,
+        db, ano, z, x, y, metro=metro, cod_municipio=cod_municipio,
     )
 
 
 def obter_setores_por_viewport(
     db: Session,
+    ano: int,
     bbox: list[float],
     zoom: int,
 ):
     return setores_repository.obter_setores_por_viewport(
         db,
+        ano,
         min_lng=bbox[0],
         min_lat=bbox[1],
         max_lng=bbox[2],
@@ -60,8 +62,9 @@ def obter_setores_por_viewport(
 
 def obter_escala_metrica(
     db: Session,
+    ano: int,
     metrica: str,
     escopo: str,
     codigo: str,
 ) -> list[float] | None:
-    return setores_repository.obter_escala_metrica(db, metrica, escopo, codigo)
+    return setores_repository.obter_escala_metrica(db, ano, metrica, escopo, codigo)

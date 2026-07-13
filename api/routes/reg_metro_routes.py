@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from controllers import reg_metro_controller
 from db.connection import get_db
-from routes._comum import montar_resposta_tile, parse_bbox_param
+from routes._comum import montar_resposta_tile, parse_bbox_param, parse_year_param
 from schemas.setores_schema import RegMetropoSchema
 
 router = APIRouter(
@@ -15,14 +15,20 @@ router = APIRouter(
 
 
 @router.get("/", response_model=List[RegMetropoSchema])
-def listar_reg_metro(db: Session = Depends(get_db)):
-    return reg_metro_controller.obter_reg_metro(db)
+def listar_reg_metro(
+    year: int = Depends(parse_year_param),
+    db: Session = Depends(get_db),
+):
+    return reg_metro_controller.obter_reg_metro(db, year)
 
 
 @router.get("/indicadores")
-def listar_indicadores_reg_metro(db: Session = Depends(get_db)):
+def listar_indicadores_reg_metro(
+    year: int = Depends(parse_year_param),
+    db: Session = Depends(get_db),
+):
     """Lista enxuta (sem geometria) para o ranking de indicadores."""
-    return reg_metro_controller.obter_reg_metro_indicadores(db)
+    return reg_metro_controller.obter_reg_metro_indicadores(db, year)
 
 
 @router.get("/estado", response_model=List[RegMetropoSchema])
@@ -31,11 +37,13 @@ def listar_reg_metro_de_estado(
         alias="codEstado",
         description="Codigo do Estado",
     ),
+    year: int = Depends(parse_year_param),
     db: Session = Depends(get_db),
 ):
     if cod_estado:
         return reg_metro_controller.obter_reg_metro_de_estado(
             db,
+            year,
             cod_estado,
         )
 
@@ -52,16 +60,24 @@ def listar_reg_metro_por_viewport(
         description="Bounds da area visivel no formato minLng,minLat,maxLng,maxLat",
     ),
     zoom: int = Query(..., ge=0, le=22),
+    year: int = Depends(parse_year_param),
     db: Session = Depends(get_db),
 ):
     return reg_metro_controller.obter_reg_metro_por_viewport(
         db,
+        year,
         parse_bbox_param(bbox),
         zoom,
     )
 
 
 @router.get("/tiles/{z}/{x}/{y}.pbf")
-def listar_tile_reg_metro(z: int, x: int, y: int, db: Session = Depends(get_db)):
-    tile_content = reg_metro_controller.obter_tile_reg_metro(db, z, x, y)
+def listar_tile_reg_metro(
+    z: int,
+    x: int,
+    y: int,
+    year: int = Depends(parse_year_param),
+    db: Session = Depends(get_db),
+):
+    tile_content = reg_metro_controller.obter_tile_reg_metro(db, year, z, x, y)
     return montar_resposta_tile(tile_content, y)

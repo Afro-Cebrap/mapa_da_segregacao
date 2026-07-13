@@ -3,7 +3,13 @@ import { formatMetricValue, formatNumber } from '@/lib/format';
 import { getEntityName } from '@/lib/segregation';
 import type { MapPopupProps, MetricType } from '@/types/dashboard.types';
 
-function MapPopup({ hoverInfo, activeMetric, metricsConfig }: MapPopupProps) {
+function MapPopup({
+	hoverInfo,
+	activeMetric,
+	metricsConfig,
+	levelLabel,
+	positionLabel,
+}: MapPopupProps) {
 	const { properties } = hoverInfo;
 
 	const allMetrics = Object.entries(metricsConfig) as [
@@ -42,16 +48,34 @@ function MapPopup({ hoverInfo, activeMetric, metricsConfig }: MapPopupProps) {
 							: ''}
 					</h4>
 
-					<div className="mt-3.5 flex items-center justify-between gap-4 leading-6 text-marca-verde">
-						<span className="text-xs font-normal">
-							{activeConfig.label}
-						</span>
-						<span className="text-xs font-bold tabular-nums">
-							{formatMetricValue(
-								properties[activeMetric],
-								activeConfig.format,
-							)}
-						</span>
+					<div className="mt-3.5 flex items-start justify-between gap-4 text-marca-verde">
+						{/* Esquerda: termo da variável com o valor logo abaixo */}
+						<div className="min-w-0">
+							<p className="text-xs font-normal leading-6">
+								{activeConfig.label}
+							</p>
+							<p className="text-xs font-bold leading-6 tabular-nums">
+								{formatMetricValue(
+									properties[activeMetric],
+									activeConfig.format,
+								)}
+							</p>
+						</div>
+
+						{/* Direita: posição por tercis no escopo + "nível"
+						    (escopo do ranking, o mesmo da sidebar) */}
+						<div className="shrink-0 text-right text-[11px] font-normal leading-6">
+							<p>
+								Posição:{' '}
+								<span className="font-bold">
+									{positionLabel ?? '—'}
+								</span>
+							</p>
+							<p className="truncate">
+								Nível:{' '}
+								<span className="font-bold">{levelLabel}</span>
+							</p>
+						</div>
 					</div>
 				</div>
 

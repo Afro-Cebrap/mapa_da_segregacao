@@ -3,7 +3,7 @@ import type { MapRef } from '@vis.gl/react-maplibre';
 import type { RefObject } from 'react';
 import { useLocationLookups } from '@/hooks/useLocationLookups';
 import { fitMapToBbox, mergeBbox, type Bbox } from '@/lib/geo';
-import type { LocationFilterScope } from '@/types/dashboard.types';
+import type { CensusYear, LocationFilterScope } from '@/types/dashboard.types';
 
 export interface FlyToTarget {
 	scope: LocationFilterScope;
@@ -27,8 +27,11 @@ function unirBboxesDeMunicipios(
 
 // Enquadra ("tp") o mapa numa localidade (estado/município/RM) usando apenas os
 // bboxes leves dos lookups — sem baixar a geometria completa de municípios/RMs.
-export function useFlyToLocation(mapRef: RefObject<MapRef | null>) {
-	const { data: lookups } = useLocationLookups();
+export function useFlyToLocation(
+	mapRef: RefObject<MapRef | null>,
+	year: CensusYear,
+) {
+	const { data: lookups } = useLocationLookups(year);
 
 	return useCallback(
 		(target: FlyToTarget) => {

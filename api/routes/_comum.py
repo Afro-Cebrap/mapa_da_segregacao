@@ -2,7 +2,9 @@
 (setores/municipios/reg_metro): parsing de bbox e envelope de resposta de tile.
 Antes cada router mantinha uma copia identica destes dois trechos."""
 
-from fastapi import HTTPException, Response
+from typing import Annotated
+
+from fastapi import HTTPException, Query, Response
 
 
 def parse_bbox_param(raw_bbox: str) -> list[float]:
@@ -45,3 +47,19 @@ def montar_resposta_tile(tile_content: bytes | None, y: int) -> Response:
             "Content-Disposition": f"attachment; filename={y}.pbf",
         },
     )
+
+
+ANOS_VALIDOS = (2010, 2022)
+
+
+def parse_year_param(
+    year: Annotated[int, Query(description="Ano do censo: 2010 ou 2022.")] = 2010,
+) -> int:
+    """Dependency compartilhada por todas as rotas de recurso geo: valida o
+    ano do censo contra as tabelas que de fato existem no banco."""
+    if year not in ANOS_VALIDOS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Parametro 'year' invalido: deve ser um de {ANOS_VALIDOS}.",
+        )
+    return year

@@ -73,6 +73,7 @@ function DashboardSidebar({
 			{!isCollapsed && (
 				<div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-10 pb-8 pt-14">
 					<SidebarControls
+						censusYear={censusYear}
 						activeMetric={activeMetric}
 						onMetricChange={onMetricChange}
 						activeLayerId={activeLayerId}

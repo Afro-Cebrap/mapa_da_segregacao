@@ -87,6 +87,7 @@ export interface DashboardSidebarProps {
 }
 
 export interface DashboardMapProps {
+	censusYear: CensusYear;
 	activeMetric: MetricType;
 	metricsConfig: MetricsConfigMap;
 	hoverInfo: HoverInfo | null;
@@ -133,6 +134,11 @@ export interface MapPopupProps {
 	hoverInfo: HoverInfo;
 	activeMetric: MetricType;
 	metricsConfig: MetricsConfigMap;
+	// Escopo ("nível") do ranking mostrado na sidebar — exibido também no tooltip.
+	levelLabel: string;
+	// Posição da localidade por tercis dentro do escopo (Baixo/Médio/Alto);
+	// null quando não há ranking para o indicador/escopo atual.
+	positionLabel: 'Baixo' | 'Médio' | 'Alto' | null;
 }
 
 export interface CensusYearFilterProps {
@@ -162,6 +168,7 @@ export interface LocationFilter {
 export interface LocationFilterPopoverProps {
 	activeLayerId: LayerId;
 	locationFilter: LocationFilter | null;
+	censusYear: CensusYear;
 	onLocationFilterChange: (filter: LocationFilter | null) => void;
 	// Escolher um filtro cujo escopo é incompatível com a camada atual troca
 	// para a camada natural (ex.: Município → Setores).

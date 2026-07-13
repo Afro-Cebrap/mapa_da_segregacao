@@ -51,7 +51,10 @@ function SearchBar({ mapRef }: { mapRef: RefObject<MapRef | null> }) {
 	const layerQuery = useQuery({
 		queryKey: ['layer-geometry', 'municipios'],
 		queryFn: async () => {
-			const items = await setoresService.listarPorEndpoint('municipios');
+			const items = await setoresService.listarPorEndpoint(
+				'municipios',
+				2010,
+			);
 			return setoresDtoToFeatureCollection(items);
 		},
 		staleTime: 1000 * 60 * 60,

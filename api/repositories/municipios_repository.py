@@ -1,15 +1,8 @@
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from models.municipios_model import MunicipiosModel
+from models.municipios_model import MODELOS_MUNICIPIOS_POR_ANO
 from repositories import geo_comum
-
-TABELA_BASE = "dados.municipios"
-# Sem simplificacao: tabela base (geometria cheia) em todo zoom. O ST_AsMVTGeom
-# quantiza por zoom e o filtro sub-pixel segura a contagem de feicoes; municipios
-# sao poucos (~5.5k), entao o custo e baixo.
-TABELA_ZOOM_BAIXO = TABELA_BASE
-TABELA_ZOOM_MEDIO = TABELA_BASE
 
 # Em municipios, code_tract vale 'Total' (nao numerico): o id da feature
 # precisa vir de code_muni.
@@ -33,31 +26,48 @@ CAMPOS_INDICADOR = (
 )
 CAMPOS_INDICADOR_CODIGO = frozenset({"code_muni", "name_metro"})
 
+# Cada municipio sempre aparece com a metrica calculada no proprio nivel do
+# municipio (unit_type='muni'), independente de pertencer a uma RM.
+FILTRO_UNIT_TYPE_MUNI = "unit_type = 'muni'"
 
-def obter_municipios(db: Session):
-    return geo_comum.consultar_payloads(db, MunicipiosModel)
+
+def _tabela_base(ano: int) -> str:
+    return f"dados.municipios_{ano}"
 
 
-def obter_municipios_indicadores(db: Session):
+def _tabela_simplificada(ano: int) -> str:
+    return f"dados.municipios_{ano}_simplified"
+
+
+def obter_municipios(db: Session, ano: int):
+    modelo = MODELOS_MUNICIPIOS_POR_ANO[ano]
+    return geo_comum.consultar_payloads(db, modelo, filtro=modelo.unit_type == "muni")
+
+
+def obter_municipios_indicadores(db: Session, ano: int):
     """Lista enxuta (sem geometria) para o ranking de municipios — clicar num
     municipio nao precisa baixar todas as ~5.5k geometrias."""
     return geo_comum.consultar_indicadores(
-        db, TABELA_BASE, CAMPOS_INDICADOR, CAMPOS_INDICADOR_CODIGO,
+        db, _tabela_base(ano), CAMPOS_INDICADOR, CAMPOS_INDICADOR_CODIGO,
+        filtro_sql=FILTRO_UNIT_TYPE_MUNI,
     )
 
 
-def obter_municipios_por_estado(db: Session, cod_estado: str):
+def obter_municipios_por_estado(db: Session, ano: int, cod_estado: str):
+    modelo = MODELOS_MUNICIPIOS_POR_ANO[ano]
     return geo_comum.consultar_payloads(
-        db, MunicipiosModel, filtro=MunicipiosModel.code_state == cod_estado,
+        db, modelo,
+        filtro=(modelo.code_state == cod_estado) & (modelo.unit_type == "muni"),
     )
 
 
-def obter_lista_municipios(db: Session):
+def obter_lista_municipios(db: Session, ano: int):
     """Lista leve (sem geometria) para lookups de filtro no frontend.
 
     Inclui o bbox (EPSG:4326) de cada municipio para enquadramento ("tp")
     sem precisar baixar a geometria completa.
     """
+    tabela = _tabela_base(ano)
     rows = db.execute(
         text(
             f"""
@@ -67,7 +77,8 @@ def obter_lista_municipios(db: Session):
             FROM (
                 SELECT m.code_muni, m.name_muni, m.code_state, m.name_metro,
                        ST_Envelope(ST_Transform(m.geometry, 4326)) AS env
-                FROM {TABELA_BASE} m
+                FROM {tabela} m
+                WHERE m.unit_type = 'muni'
             ) s
             ORDER BY name_muni NULLS LAST
             """
@@ -91,14 +102,17 @@ def obter_lista_municipios(db: Session):
 
 def obter_municipios_por_viewport(
     db: Session,
+    ano: int,
     min_lng: float,
     min_lat: float,
     max_lng: float,
     max_lat: float,
     zoom: int,
 ):
+    tabela_base = _tabela_base(ano)
+    tabela_simplificada = _tabela_simplificada(ano)
     tabela = geo_comum.resolver_tabela_por_zoom(
-        db, zoom, TABELA_BASE, TABELA_ZOOM_BAIXO, TABELA_ZOOM_MEDIO,
+        db, zoom, tabela_base, tabela_simplificada, tabela_simplificada,
     )
     return geo_comum.obter_por_viewport(
         db,
@@ -107,12 +121,15 @@ def obter_municipios_por_viewport(
         min_lat=min_lat,
         max_lng=max_lng,
         max_lat=max_lat,
+        filtro_sql=FILTRO_UNIT_TYPE_MUNI,
     )
 
 
-def obter_tile_mvt(db: Session, z: int, x: int, y: int):
+def obter_tile_mvt(db: Session, ano: int, z: int, x: int, y: int):
+    tabela_base = _tabela_base(ano)
+    tabela_simplificada = _tabela_simplificada(ano)
     tabela = geo_comum.resolver_tabela_por_zoom(
-        db, z, TABELA_BASE, TABELA_ZOOM_BAIXO, TABELA_ZOOM_MEDIO,
+        db, z, tabela_base, tabela_simplificada, tabela_simplificada,
     )
     return geo_comum.obter_tile_mvt(
         db,
@@ -122,4 +139,5 @@ def obter_tile_mvt(db: Session, z: int, x: int, y: int):
         y=y,
         feature_id_sql=FEATURE_ID_SQL,
         colunas_propriedades=PROPRIEDADES_TILE,
+        filtro_sql=FILTRO_UNIT_TYPE_MUNI,
     )

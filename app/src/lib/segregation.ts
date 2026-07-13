@@ -39,7 +39,6 @@ export function parseSegregationProperties(
 		name_district: toNullableString(properties.name_district),
 		code_subdistrict: toNullableNumber(properties.code_subdistrict),
 		name_subdistrict: toNullableString(properties.name_subdistrict),
-		code_weighting: toNullableNumber(properties.code_weighting),
 		zone: toNullableString(properties.zone),
 		code_state: toNullableString(properties.code_state),
 		abbrev_state: toNullableString(properties.abbrev_state),

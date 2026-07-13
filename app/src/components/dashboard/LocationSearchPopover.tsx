@@ -19,9 +19,11 @@ import {
 import { ESTADOS, siglaPorCodigoEstado } from '@/constants/estados';
 import { useFlyToLocation } from '@/hooks/useFlyToLocation';
 import { useLocationLookups } from '@/hooks/useLocationLookups';
+import type { CensusYear } from '@/types/dashboard.types';
 
 interface LocationSearchPopoverProps {
 	mapRef: RefObject<MapRef | null>;
+	censusYear: CensusYear;
 }
 
 type SearchItem = {
@@ -32,11 +34,14 @@ type SearchItem = {
 	code: string;
 };
 
-function LocationSearchPopover({ mapRef }: LocationSearchPopoverProps) {
+function LocationSearchPopover({
+	mapRef,
+	censusYear,
+}: LocationSearchPopoverProps) {
 	const [open, setOpen] = useState(false);
 	const [query, setQuery] = useState('');
-	const { data: lookups } = useLocationLookups();
-	const flyToLocation = useFlyToLocation(mapRef);
+	const { data: lookups } = useLocationLookups(censusYear);
+	const flyToLocation = useFlyToLocation(mapRef, censusYear);
 
 	const items = useMemo(() => {
 		const q = query.trim().toLowerCase();

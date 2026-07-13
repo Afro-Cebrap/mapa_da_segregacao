@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 CAMPOS_SEGREG = (
     "code_tract", "code_muni", "name_muni", "code_neighborhood", "name_neighborhood",
     "code_district", "name_district", "code_subdistrict", "name_subdistrict",
-    "code_weighting", "zone", "code_state", "abbrev_state", "name_state",
+    "zone", "code_state", "abbrev_state", "name_state",
     "code_region", "name_region", "year", "name_metro",
     "dissimilarity", "index_h", "exp_branca_pp", "exp_pp_branca",
     "iso_branca_branca", "iso_pp_pp", "n_branca", "n_preta", "n_parda",
@@ -191,8 +191,11 @@ def obter_por_viewport(
     min_lat: float,
     max_lng: float,
     max_lat: float,
+    filtro_sql: str | None = None,
+    filtro_params: dict | None = None,
 ):
     colunas = ",\n            ".join(f"t.{campo}" for campo in CAMPOS_SEGREG)
+    filtro_extra = f"AND ({filtro_sql})" if filtro_sql else ""
     sql = text(
         f"""
         WITH bounds AS (
@@ -208,19 +211,21 @@ def obter_por_viewport(
         WHERE
             t.geometry && bounds.nativo
             AND ST_Intersects(t.geometry, bounds.nativo)
+            {filtro_extra}
         """
     )
 
-    rows = db.execute(
-        sql,
-        {
-            "min_lng": min_lng,
-            "min_lat": min_lat,
-            "max_lng": max_lng,
-            "max_lat": max_lat,
-            "srid": SRID_DADOS,
-        },
-    ).all()
+    parametros = {
+        "min_lng": min_lng,
+        "min_lat": min_lat,
+        "max_lng": max_lng,
+        "max_lat": max_lat,
+        "srid": SRID_DADOS,
+    }
+    if filtro_params:
+        parametros.update(filtro_params)
+
+    rows = db.execute(sql, parametros).all()
 
     features = [
         feature
@@ -245,6 +250,7 @@ def obter_tile_mvt(
     colunas_propriedades: Sequence[str],
     filtro_sql: str | None = None,
     filtro_params: dict | None = None,
+    filtrar_area_minima: bool = True,
 ):
     """Gera o tile MVT da tabela informada.
 
@@ -254,9 +260,14 @@ def obter_tile_mvt(
     propriedades da feature.
     filtro_sql: clausula WHERE extra opcional (sobre alias t), concatenada como
     `AND (<filtro_sql>)`; seus parametros vem em filtro_params.
+    filtrar_area_minima: quando False, desliga o corte sub-pixel de
+    `area_minima_para_zoom` em zoom baixo/medio — setores usa False, pois
+    geometrias pequenas (setores censitarios densos) precisam continuar
+    visiveis mesmo antes do zoom base, em vez de so aparecerem a partir de
+    z12 e sumirem de novo ao dar zoom out.
 
     """
-    area_minima = area_minima_para_zoom(z)
+    area_minima = area_minima_para_zoom(z) if filtrar_area_minima else 0.0
     props = ",\n            ".join(colunas_propriedades)
     filtro_where = f"AND ({filtro_sql})" if filtro_sql else ""
     sql = text(

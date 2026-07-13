@@ -19,6 +19,7 @@ import { ESTADOS, siglaPorCodigoEstado } from '@/constants/estados';
 import { useLocationLookups } from '@/hooks/useLocationLookups';
 import { layerForScope } from '@/lib/location';
 import type {
+	CensusYear,
 	LocationFilter,
 	LocationFilterPopoverProps,
 	LocationFilterScope,
@@ -46,6 +47,7 @@ const FILTER_TABS: TabKey[] = ['estado', 'municipio', 'reg_metro'];
 export interface LocationFilterMenuProps {
 	tabs: TabKey[];
 	locationFilter: LocationFilter | null;
+	censusYear: CensusYear;
 	onSelect: (filter: LocationFilter) => void;
 }
 
@@ -54,6 +56,7 @@ export interface LocationFilterMenuProps {
 export function LocationFilterMenu({
 	tabs,
 	locationFilter,
+	censusYear,
 	onSelect,
 }: LocationFilterMenuProps) {
 	const [query, setQuery] = useState('');
@@ -63,7 +66,7 @@ export function LocationFilterMenu({
 			: (tabs[0] ?? 'estado');
 	const [activeTab, setActiveTab] = useState<TabKey>(initialTab);
 
-	const { data: lookups } = useLocationLookups();
+	const { data: lookups } = useLocationLookups(censusYear);
 
 	const items = useMemo(() => {
 		const q = query.trim().toLowerCase();
@@ -194,6 +197,7 @@ export function LocationFilterMenu({
 function LocationFilterPopover({
 	activeLayerId,
 	locationFilter,
+	censusYear,
 	onLocationFilterChange,
 	onLayerChange,
 }: LocationFilterPopoverProps) {
@@ -220,6 +224,7 @@ function LocationFilterPopover({
 				<LocationFilterMenu
 					tabs={FILTER_TABS}
 					locationFilter={locationFilter}
+					censusYear={censusYear}
 					onSelect={(filter) => {
 						// Ativa a camada natural do escopo escolhido (ex.:
 						// Município → Setores) antes de aplicar o filtro.

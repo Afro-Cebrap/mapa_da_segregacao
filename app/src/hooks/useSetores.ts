@@ -2,7 +2,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 
 import { setoresService } from '@/services/setores/Setores.services';
 import type { SetoresViewportParams } from '@/services/setores/Setores.interface';
-import type { MetricType } from '@/types/dashboard.types';
+import type { CensusYear, MetricType } from '@/types/dashboard.types';
 
 type ZoomBucket = 'low' | 'mid' | 'high';
 
@@ -33,17 +33,21 @@ function normalizeViewportParams(params: SetoresViewportParams) {
 	};
 }
 
-export function useSetores() {
+export function useSetores(year: CensusYear) {
 	return useQuery({
-		queryKey: ['setores', 'all'],
-		queryFn: () => setoresService.listarSetores(),
+		queryKey: ['setores', 'all', year],
+		queryFn: () => setoresService.listarSetores(year),
 	});
 }
 
-export function useSetoresPorMunicipio(codMunicipio?: string | number | null) {
+export function useSetoresPorMunicipio(
+	codMunicipio: string | number | null | undefined,
+	year: CensusYear,
+) {
 	return useQuery({
-		queryKey: ['setores', 'municipio', codMunicipio],
-		queryFn: () => setoresService.listarSetoresPorMunicipio(codMunicipio!),
+		queryKey: ['setores', 'municipio', codMunicipio, year],
+		queryFn: () =>
+			setoresService.listarSetoresPorMunicipio(codMunicipio!, year),
 		enabled:
 			codMunicipio !== null &&
 			codMunicipio !== undefined &&
@@ -55,17 +59,21 @@ export function useEscalaSetores(
 	metrica: MetricType | null,
 	escopo: 'reg_metro' | 'municipio' | null,
 	codigo: string | null,
+	year: CensusYear,
 ) {
 	return useQuery({
-		queryKey: ['setores', 'escala', metrica, escopo, codigo],
+		queryKey: ['setores', 'escala', metrica, escopo, codigo, year],
 		queryFn: () =>
-			setoresService.obterEscalaSetores(metrica!, escopo!, codigo!),
+			setoresService.obterEscalaSetores(metrica!, escopo!, codigo!, year),
 		enabled: Boolean(metrica && escopo && codigo),
 		staleTime: 1000 * 60 * 60 * 24,
 	});
 }
 
-export function useSetoresViewport(params: SetoresViewportParams | null) {
+export function useSetoresViewport(
+	params: SetoresViewportParams | null,
+	year: CensusYear,
+) {
 	const normalizedParams = params ? normalizeViewportParams(params) : null;
 
 	return useQuery({
@@ -75,10 +83,11 @@ export function useSetoresViewport(params: SetoresViewportParams | null) {
 					'viewport',
 					normalizedParams.zoomBucket,
 					...normalizedParams.bbox,
+					year,
 				]
-			: ['setores', 'viewport', 'idle'],
+			: ['setores', 'viewport', 'idle', year],
 		queryFn: () =>
-			setoresService.listarSetoresPorViewport(normalizedParams!),
+			setoresService.listarSetoresPorViewport(normalizedParams!, year),
 		enabled: Boolean(normalizedParams),
 		placeholderData: keepPreviousData,
 	});

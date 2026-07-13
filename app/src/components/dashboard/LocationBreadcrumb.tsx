@@ -1,13 +1,17 @@
 import { useLocationLookups } from '@/hooks/useLocationLookups';
 import { buildSegments } from '@/lib/location';
-import type { LocationFilter } from '@/types/dashboard.types';
+import type { CensusYear, LocationFilter } from '@/types/dashboard.types';
 
 interface LocationBreadcrumbProps {
+	censusYear: CensusYear;
 	locationFilter: LocationFilter | null;
 }
 
-function LocationBreadcrumb({ locationFilter }: LocationBreadcrumbProps) {
-	const { data: lookups } = useLocationLookups();
+function LocationBreadcrumb({
+	censusYear,
+	locationFilter,
+}: LocationBreadcrumbProps) {
+	const { data: lookups } = useLocationLookups(censusYear);
 	const segments = buildSegments(locationFilter, lookups);
 
 	return (

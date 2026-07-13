@@ -8,6 +8,7 @@ import type {
 	SetoresViewportParams,
 	MunicipioListaDto,
 } from '@/services/setores/Setores.interface';
+import type { CensusYear } from '@/types/dashboard.types';
 
 type SegregationEndpoint = 'municipios' | 'setores' | 'reg_metro';
 
@@ -74,56 +75,71 @@ function serializeBbox([
 	return [minLng, minLat, maxLng, maxLat].join(',');
 }
 
-export function getSegregationTileUrl(endpoint: SegregationEndpoint) {
-	return `${normalizeBaseUrl(apiBaseUrl)}/api/${endpoint}/tiles/{z}/{x}/{y}.pbf`;
+export function getSegregationTileUrl(
+	endpoint: SegregationEndpoint,
+	year: CensusYear,
+) {
+	return `${normalizeBaseUrl(apiBaseUrl)}/api/${endpoint}/tiles/{z}/{x}/{y}.pbf?year=${year}`;
 }
 
 export const setoresService = {
-	async listarPorEndpoint(endpoint: SegregationEndpoint) {
-		const { data } = await api.get<SegregationDto[]>(`/api/${endpoint}/`);
+	async listarPorEndpoint(endpoint: SegregationEndpoint, year: CensusYear) {
+		const { data } = await api.get<SegregationDto[]>(`/api/${endpoint}/`, {
+			params: { year },
+		});
 		return data;
 	},
 
-	async listarSetores() {
-		const { data } = await api.get<SegregationDto[]>('/api/setores/');
+	async listarSetores(year: CensusYear) {
+		const { data } = await api.get<SegregationDto[]>('/api/setores/', {
+			params: { year },
+		});
 		return data;
 	},
 
 	// Lista enxuta (sem geometria) para o ranking de indicadores de qualquer
-	// camada. A lista com geometria pesa demais (setores passam de 600MB;
-	// clicar num município não precisa baixar todas as geometrias) — esta traz
-	// só identificador + métricas.
-	// Para setores, `scope` e `code` filtram no servidor (RM ou município),
-	// reduzindo o payload de ~316k para apenas os setores relevantes.
+	// camada. Para setores, `scope` e `code` filtram no servidor (RM ou
+	// município), reduzindo o payload de ~316k para apenas os setores relevantes.
 	async listarIndicadores(
 		endpoint: SegregationEndpoint,
+		year: CensusYear,
 		scope?: string,
 		code?: string,
 	): Promise<RankingIndicadoresRow[]> {
 		const { data } = await api.get<RankingIndicadoresRow[]>(
 			`/api/${endpoint}/indicadores`,
-			scope && code ? { params: { scope, code } } : undefined,
-		);
-		return data;
-	},
-
-	async listarSetoresPorMunicipio(codMunicipio: string | number) {
-		const { data } = await api.get<SegregationDto[]>(
-			'/api/setores/municipio',
 			{
-				params: { codMunicipio },
+				params:
+					scope && code ? { scope, code, year } : { year },
 			},
 		);
 		return data;
 	},
 
-	async listarSetoresPorViewport({ bbox, zoom }: SetoresViewportParams) {
+	async listarSetoresPorMunicipio(
+		codMunicipio: string | number,
+		year: CensusYear,
+	) {
+		const { data } = await api.get<SegregationDto[]>(
+			'/api/setores/municipio',
+			{
+				params: { codMunicipio, year },
+			},
+		);
+		return data;
+	},
+
+	async listarSetoresPorViewport(
+		{ bbox, zoom }: SetoresViewportParams,
+		year: CensusYear,
+	) {
 		const { data } = await api.get<SegregationFeatureCollection>(
 			'/api/setores/viewport',
 			{
 				params: {
 					bbox: serializeBbox(bbox),
 					zoom,
+					year,
 				},
 			},
 		);
@@ -138,14 +154,17 @@ export const setoresService = {
 		};
 	},
 
-	async listarMunicipios() {
-		const { data } = await api.get<SegregationDto[]>('/api/municipios/');
+	async listarMunicipios(year: CensusYear) {
+		const { data } = await api.get<SegregationDto[]>('/api/municipios/', {
+			params: { year },
+		});
 		return data;
 	},
 
-	async listarMunicipiosLista(): Promise<MunicipioListaDto[]> {
+	async listarMunicipiosLista(year: CensusYear): Promise<MunicipioListaDto[]> {
 		const { data } = await api.get<MunicipioListaDto[]>(
 			'/api/municipios/lista',
+			{ params: { year } },
 		);
 		return data;
 	},
@@ -154,27 +173,34 @@ export const setoresService = {
 		metrica: string,
 		escopo: 'reg_metro' | 'municipio',
 		codigo: string,
+		year: CensusYear,
 	): Promise<[number, number, number, number]> {
 		const { data } = await api.get<{
 			breaks: [number, number, number, number];
 		}>('/api/setores/escala', {
-			params: { metric: metrica, scope: escopo, code: codigo },
+			params: { metric: metrica, scope: escopo, code: codigo, year },
 		});
 		return data.breaks;
 	},
 
-	async listarRegioesMetropolitanas() {
-		const { data } = await api.get<SegregationDto[]>('/api/reg_metro/');
+	async listarRegioesMetropolitanas(year: CensusYear) {
+		const { data } = await api.get<SegregationDto[]>('/api/reg_metro/', {
+			params: { year },
+		});
 		return data;
 	},
 
-	async listarMunicipiosPorViewport({ bbox, zoom }: SetoresViewportParams) {
+	async listarMunicipiosPorViewport(
+		{ bbox, zoom }: SetoresViewportParams,
+		year: CensusYear,
+	) {
 		const { data } = await api.get<SegregationFeatureCollection>(
 			'/api/municipios/viewport',
 			{
 				params: {
 					bbox: serializeBbox(bbox),
 					zoom,
+					year,
 				},
 			},
 		);

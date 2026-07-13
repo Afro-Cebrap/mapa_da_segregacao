@@ -17,6 +17,7 @@ import {
 	PopoverTrigger,
 } from '@/components/ui/popover';
 import type {
+	CensusYear,
 	LayerId,
 	LocationFilter,
 	MetricType,
@@ -30,6 +31,7 @@ const SCALE_ORDER: LayerId[] = [
 ];
 
 interface SidebarControlsProps {
+	censusYear: CensusYear;
 	activeMetric: MetricType;
 	onMetricChange: (metric: MetricType) => void;
 	activeLayerId: LayerId;
@@ -43,6 +45,7 @@ interface SidebarControlsProps {
 // sidebar desktop quanto pela folha inferior no mobile — cada um fornece seu
 // próprio contêiner/padding.
 function SidebarControls({
+	censusYear,
 	activeMetric,
 	onMetricChange,
 	activeLayerId,
@@ -71,15 +74,22 @@ function SidebarControls({
 						<LocationFilterPopover
 							activeLayerId={activeLayerId}
 							locationFilter={locationFilter}
+							censusYear={censusYear}
 							onLocationFilterChange={onLocationFilterChange}
 							onLayerChange={onLayerChange}
 						/>
-						<LocationSearchPopover mapRef={mapRef} />
+						<LocationSearchPopover
+							mapRef={mapRef}
+							censusYear={censusYear}
+						/>
 					</div>
 				</div>
 
 				<div className="flex items-center justify-between gap-2">
-					<LocationBreadcrumb locationFilter={locationFilter} />
+					<LocationBreadcrumb
+						locationFilter={locationFilter}
+						censusYear={censusYear}
+					/>
 					{locationFilter && (
 						<button
 							type="button"
@@ -137,6 +147,7 @@ function SidebarControls({
 													'reg_metro',
 												]}
 												locationFilter={locationFilter}
+												censusYear={censusYear}
 												onSelect={(filter) => {
 													onLayerChange('setores');
 													onLocationFilterChange(
