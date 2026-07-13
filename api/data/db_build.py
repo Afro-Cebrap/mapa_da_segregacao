@@ -12,11 +12,11 @@ def ler_parquet_geo(caminho_parquet):
 
     Arquivos gravados com GeoDataFrame.to_parquet trazem o metadado 'geo' e
     sao lidos direto pelo geopandas. Arquivos gravados com
-    pandas.DataFrame.to_parquet (caso do sf_segregation_indices_completo
-    recebido em 2026-07) trazem a geometria como bytes WKB sem metadado 'geo',
-    o que faz gpd.read_parquet falhar — nesse caso o WKB e decodificado
-    manualmente. Sem o metadado tambem nao ha CRS gravado; o chamador e
-    responsavel por definir o CRS quando ausente.
+    pandas.DataFrame.to_parquet (caso dos datasets recebidos a partir de
+    2026-07) trazem a geometria como bytes WKB sem metadado 'geo', o que faz
+    gpd.read_parquet falhar — nesse caso o WKB e decodificado manualmente.
+    Sem o metadado tambem nao ha CRS gravado; o chamador e responsavel por
+    definir o CRS quando ausente.
     """
     try:
         return gpd.read_parquet(caminho_parquet)
@@ -183,5 +183,5 @@ def processar_e_salvar_tabelas(caminho_parquet):
     print("Processo finalizado com sucesso!")
 
 if __name__ == "__main__":
-    CAMINHO_ARQUIVO = 'sf_segregation_indices_completo.parquet'
+    CAMINHO_ARQUIVO = 'sf_segregation_indices.parquet'
     processar_e_salvar_tabelas(CAMINHO_ARQUIVO)

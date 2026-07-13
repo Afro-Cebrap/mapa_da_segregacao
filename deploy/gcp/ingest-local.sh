@@ -4,20 +4,22 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-PROJECT_INFRA="${PROJECT_INFRA:-painel-segregacao-001}"
+PROJECT_INFRA="${PROJECT_INFRA:-mapa-da-segregacao}"
 REGION="${REGION:-us-central1}"
 INSTANCE="${INSTANCE:-painel-segreg-pg}"
 DB_NAME="${DB_NAME:-banco-segreg}"
 DB_USER="${DB_USER:-usuario-painel}"
-LOCAL_PORT="${LOCAL_PORT:-5433}"
+# 5435 para não colidir com os Postgres locais do Docker (5432-5434).
+LOCAL_PORT="${LOCAL_PORT:-5435}"
 
 CONN_NAME="${PROJECT_INFRA}:${REGION}:${INSTANCE}"
 PARQUET_DIR="$(cd ../../api/data && pwd)"
+# Mesmo arquivo que db_build.py lê (CAMINHO_ARQUIVO).
 PARQUET="${PARQUET_DIR}/sf_segregation_indices.parquet"
-PY="$(cd ../../api && pwd)/venv1/Scripts/python"
+PY="$(cd ../../api && pwd)/venv-segreg/Scripts/python"
 
 [ -f "$PARQUET" ] || { echo "ERRO: parquet não encontrado em $PARQUET"; exit 1; }
-[ -x "$PY" ] || PY="$(cd ../../api && pwd)/venv1/bin/python" # fallback linux/mac
+[ -x "$PY" ] || PY="$(cd ../../api && pwd)/venv-segreg/bin/python" # fallback linux/mac
 
 echo ">>> Lendo senha do Secret Manager"
 DB_PASS="$(gcloud secrets versions access latest --secret=db-password --project="$PROJECT_INFRA")"
@@ -33,14 +35,29 @@ export DB_PORT="$LOCAL_PORT"
 export DB_NAME DB_USER DB_PASS
 
 echo ">>> Garantindo schema 'dados' e extensão PostGIS"
-PGPASSWORD="$DB_PASS" psql -h 127.0.0.1 -p "$LOCAL_PORT" -U "$DB_USER" -d "$DB_NAME" \
-  -c 'CREATE SCHEMA IF NOT EXISTS dados;' \
-  -c 'CREATE EXTENSION IF NOT EXISTS postgis;'
+# Via python/sqlalchemy (mesmo venv da ingestão) — dispensa psql instalado.
+"$PY" - <<'PYEOF'
+import os
+from sqlalchemy import create_engine, text
+url = (
+    f"postgresql://{os.environ['DB_USER']}:{os.environ['DB_PASS']}"
+    f"@{os.environ['DB_HOST']}:{os.environ['DB_PORT']}/{os.environ['DB_NAME']}"
+)
+with create_engine(url).begin() as conn:
+    conn.execute(text("CREATE SCHEMA IF NOT EXISTS dados;"))
+    conn.execute(text("CREATE EXTENSION IF NOT EXISTS postgis;"))
+print("schema 'dados' + extensão postgis OK")
+PYEOF
 
-echo ">>> Ingestão (db_build.py) — pode levar alguns minutos"
+echo ">>> Ingestão (db_build.py) — pode levar vários minutos"
 ( cd "$PARQUET_DIR" && "$PY" db_build.py )
 
-echo ">>> Simplificação da RM (simplify_table.py)"
-( cd "$PARQUET_DIR" && "$PY" simplify_table.py 0.001 --origem reg_metropo --destino reg_metropo_simplified )
+# Uma _simplified por tabela base (tol 0.001) — o resolver por zoom usa
+# dados.<recurso>_<ano>_simplified para z<12 e a base para z>=12.
+echo ">>> Simplificação das 6 tabelas (simplify_table.py)"
+for TABELA in setores_2010 setores_2022 municipios_2010 municipios_2022 reg_metropo_2010 reg_metropo_2022; do
+  echo ">>>   ${TABELA} -> ${TABELA}_simplified"
+  ( cd "$PARQUET_DIR" && "$PY" simplify_table.py 0.001 --origem "$TABELA" --destino "${TABELA}_simplified" )
+done
 
 echo ">>> Ingestão concluída."
