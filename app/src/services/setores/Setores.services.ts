@@ -9,16 +9,9 @@ import type {
 	MunicipioListaDto,
 } from '@/services/setores/Setores.interface';
 import type { CensusYear } from '@/types/dashboard.types';
+import { dataBaseUrl } from '@/services/staticData/config';
 
 type SegregationEndpoint = 'municipios' | 'setores' | 'reg_metro';
-
-const apiBaseUrl =
-	(import.meta.env.VITE_API_URL as string | undefined) ||
-	'http://127.0.0.1:8000';
-
-function normalizeBaseUrl(url: string) {
-	return url.endsWith('/') ? url.slice(0, -1) : url;
-}
 
 function hasGeometry(
 	item: SegregationDto,
@@ -75,11 +68,29 @@ function serializeBbox([
 	return [minLng, minLat, maxLng, maxLat].join(',');
 }
 
+// The API endpoint names and the archive names differ for one resource:
+// the route is /api/reg_metro but the tables and archives are reg_metropo.
+const TILE_ARCHIVE_BY_ENDPOINT: Record<SegregationEndpoint, string> = {
+	setores: 'setores',
+	municipios: 'municipios',
+	reg_metro: 'reg_metropo',
+};
+
+export function buildTileUrl(
+	baseUrl: string,
+	endpoint: SegregationEndpoint,
+	year: CensusYear,
+) {
+	const archive = TILE_ARCHIVE_BY_ENDPOINT[endpoint];
+	const base = baseUrl.replace(/\/+$/, '');
+	return `pmtiles://${base}/tiles/${archive}_${year}.pmtiles/{z}/{x}/{y}`;
+}
+
 export function getSegregationTileUrl(
 	endpoint: SegregationEndpoint,
 	year: CensusYear,
 ) {
-	return `${normalizeBaseUrl(apiBaseUrl)}/api/${endpoint}/tiles/{z}/{x}/{y}.pbf?year=${year}`;
+	return buildTileUrl(dataBaseUrl, endpoint, year);
 }
 
 export const setoresService = {
