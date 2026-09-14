@@ -2,6 +2,7 @@ import { api } from '@/services/api';
 import type {
 	RankingIndicadoresRow,
 	SegregationDto,
+	SegregationEndpoint,
 	SegregationFeature,
 	SegregationFeatureCollection,
 	SegregationProperties,
@@ -10,8 +11,6 @@ import type {
 } from '@/services/setores/Setores.interface';
 import type { CensusYear } from '@/types/dashboard.types';
 import { dataBaseUrl } from '@/services/staticData/config';
-
-type SegregationEndpoint = 'municipios' | 'setores' | 'reg_metro';
 
 function hasGeometry(
 	item: SegregationDto,

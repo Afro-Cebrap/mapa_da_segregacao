@@ -1,8 +1,9 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { LAYERS_CONFIG } from '@/constants/layers';
-import { setoresService } from '@/services/setores/Setores.services';
+import { staticDataService } from '@/services/staticData/client';
 import { useLocationLookups } from '@/hooks/useLocationLookups';
+import { useSetoresScope } from '@/hooks/useSetores';
 import { resolveAllowedMunis } from '@/lib/mapFilters';
 import type {
 	RankingIndicadoresRow,
@@ -231,29 +232,23 @@ export function useIndicatorRankings(
 		return null;
 	}, [activeLayerId, locationFilter, lookups]);
 
-	const layerQuery = useQuery({
-		// Para setores, o escopo faz parte da cache key: cada RM/município tem
-		// seu próprio cache entry e não reaproveitará dados de outro escopo.
-		queryKey: [
-			'layer-ranking',
-			endpoint,
-			setoresApiParams?.escopo ?? null,
-			setoresApiParams?.codigo ?? null,
-			year,
-		],
-		queryFn: () =>
-			setoresService.listarIndicadores(
-				endpoint!,
-				year,
-				setoresApiParams?.escopo,
-				setoresApiParams?.codigo,
-			),
-		// Setores só busca quando o escopo está resolvido (locationFilter presente).
-		enabled:
-			!!endpoint &&
-			(activeLayerId !== 'setores' || setoresApiParams !== null),
+	const scopeQuery = useSetoresScope(
+		setoresApiParams?.escopo ?? null,
+		setoresApiParams?.codigo ?? null,
+		year,
+	);
+
+	const listQuery = useQuery({
+		queryKey: ['static', 'rankings', endpoint, year],
+		queryFn: () => staticDataService.fetchRankings(endpoint!, year),
+		enabled: !!endpoint && activeLayerId !== 'setores',
 		staleTime: 1000 * 60 * 60,
 	});
+
+	const layerQuery =
+		activeLayerId === 'setores'
+			? { data: scopeQuery.data?.rows, isLoading: scopeQuery.isLoading }
+			: { data: listQuery.data, isLoading: listQuery.isLoading };
 
 	// levelLabel: calculado independente de os dados já terem chegado,
 	// para que o cabeçalho mostre o escopo correto mesmo durante o loading.

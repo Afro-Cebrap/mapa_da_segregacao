@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { setoresService } from '@/services/setores/Setores.services';
+import { staticDataService } from '@/services/staticData/client';
 import type { MunicipioListaDto } from '@/services/setores/Setores.interface';
 import type { Bbox } from '@/lib/geo';
 import type { CensusYear } from '@/types/dashboard.types';
@@ -117,8 +117,8 @@ export function useLocationLookups(year: CensusYear): {
 	isLoading: boolean;
 } {
 	const query = useQuery({
-		queryKey: ['municipios', 'lista', year],
-		queryFn: () => setoresService.listarMunicipiosLista(year),
+		queryKey: ['static', 'municipios-lista', year],
+		queryFn: () => staticDataService.fetchMunicipiosLista(year),
 		staleTime: 1000 * 60 * 60,
 	});
 
