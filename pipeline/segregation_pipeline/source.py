@@ -39,6 +39,25 @@ def load_source(path: str) -> gpd.GeoDataFrame:
     return gpd.GeoDataFrame(frame, geometry=geometry_column)
 
 
+def _stringify_identifier(value):
+    """Stringify a single identifier value without introducing a trailing
+    '.0' for whole-number floats, and without turning a missing value into
+    the literal string 'nan'.
+
+    Identifier columns are usually int or str already, matching the legacy
+    ingestion's plain astype(str). But numeric IDs sometimes arrive as
+    float64 (e.g. a nullable-int column, or numerics round-tripped through
+    pandas.DataFrame.to_parquet as double); a plain astype(str) would turn
+    35.0 into "35.0", which then silently never matches the string "35"
+    used elsewhere in the panel.
+    """
+    if pd.isna(value):
+        return value
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value)
+
+
 def normalize(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     """Lowercase column names, drop the redundant 'geom' column, declare the
     source CRS when absent, and stringify identifier columns."""
@@ -53,7 +72,7 @@ def normalize(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
 
     for column in IDENTIFIER_COLUMNS:
         if column in gdf.columns:
-            gdf[column] = gdf[column].astype(str)
+            gdf[column] = gdf[column].apply(_stringify_identifier)
 
     return gdf
 
