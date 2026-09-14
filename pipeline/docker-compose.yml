@@ -1,0 +1,10 @@
+services:
+  pipeline:
+    build: .
+    volumes:
+      # PARQUET_DIR is the folder holding the source parquet on the host.
+      - ${PARQUET_DIR:-./data}:/data:ro
+      - ./out:/out
+    environment:
+      PARQUET: /data/${PARQUET_NAME:-sf_segregation_indices.parquet}
+      OUT: /out
