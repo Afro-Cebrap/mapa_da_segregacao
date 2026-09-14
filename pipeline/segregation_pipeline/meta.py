@@ -6,6 +6,7 @@ payloads of municipios_repository and reg_metro_repository.
 """
 
 import geopandas as gpd
+import pandas as pd
 
 from segregation_pipeline.serialization import as_code, sanitize_number
 
@@ -29,17 +30,29 @@ def _metrics(row) -> dict:
 def build_municipios_lista(gdf: gpd.GeoDataFrame) -> list[dict]:
     """Geometry-free municipality lookup, with the 4326 bbox used to frame the
     map on selection. abbrev_state is new here: it lets SearchBar drop its
-    full-geometry download and reuse this payload."""
+    full-geometry download and reuse this payload.
+
+    Rows are sorted by name_muni for readability only, with missing names
+    last; this is a code-point sort, not pt-BR collation, and is not a
+    contract — the frontend (useLocationLookups.ts) re-sorts with
+    localeCompare('pt-BR') before display.
+    """
     projected = gdf.to_crs(epsg=BBOX_CRS_EPSG)
     rows = []
 
     for _, row in projected.iterrows():
         geometry = row[projected.geometry.name]
-        bounds = geometry.bounds if geometry is not None else (None, None, None, None)
+        if geometry is None or geometry.is_empty:
+            bounds = (None, None, None, None)
+        else:
+            bounds = tuple(sanitize_number(value) for value in geometry.bounds)
+        name_muni = row["name_muni"]
+        if pd.isna(name_muni):
+            name_muni = None
         rows.append(
             {
                 "code_muni": as_code(row["code_muni"]),
-                "name_muni": row["name_muni"],
+                "name_muni": name_muni,
                 "code_state": as_code(row["code_state"]),
                 "name_metro": row["name_metro"],
                 "abbrev_state": row["abbrev_state"],

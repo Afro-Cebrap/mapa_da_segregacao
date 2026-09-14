@@ -1,3 +1,5 @@
+from shapely.geometry import Polygon
+
 from segregation_pipeline.meta import (
     RANKING_METRICS,
     build_municipios_lista,
@@ -57,6 +59,30 @@ def test_lista_is_sorted_by_municipality_name(make_gdf):
     rows = build_municipios_lista(gdf)
 
     assert [row["name_muni"] for row in rows] == ["Campinas", "Santos"]
+
+
+def test_lista_sorts_missing_names_last(make_gdf):
+    gdf = make_gdf(
+        [
+            {"code_tract": "Total", "code_muni": "2", "name_muni": None},
+            {"code_tract": "Total", "code_muni": "1", "name_muni": "Campinas"},
+        ]
+    )
+
+    rows = build_municipios_lista(gdf)
+
+    assert [row["name_muni"] for row in rows] == ["Campinas", None]
+
+
+def test_lista_nulls_bounds_for_empty_geometry(make_gdf):
+    gdf = make_gdf([{"code_tract": "Total", "geometry": Polygon()}])
+
+    rows = build_municipios_lista(gdf)
+
+    assert rows[0]["min_lng"] is None
+    assert rows[0]["min_lat"] is None
+    assert rows[0]["max_lng"] is None
+    assert rows[0]["max_lat"] is None
 
 
 def test_municipios_rankings_carry_code_and_metro_as_strings(make_gdf):
