@@ -9,6 +9,7 @@ Usage:
 
 import argparse
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -23,12 +24,33 @@ def _key(row, key_fields):
     return tuple(row.get(field) for field in key_fields)
 
 
+def _is_missing(value) -> bool:
+    """True for None or a non-finite float -- both mean "no data" here.
+
+    A bare None and float('nan') carry the same "missing" meaning even
+    though they're different Python values, so they must compare equal to
+    each other rather than falling through to a naive `!=` check.
+    """
+    if value is None:
+        return True
+    return isinstance(value, float) and not math.isfinite(value)
+
+
 def _values_differ(left, right) -> bool:
+    left_missing = _is_missing(left)
+    right_missing = _is_missing(right)
+    if left_missing or right_missing:
+        return left_missing != right_missing
+
     left_number = sanitize_number(left)
     right_number = sanitize_number(right)
-    if left_number is None or right_number is None:
-        return left_number is not right_number and left != right
-    return abs(left_number - right_number) > TOLERANCE
+    if left_number is not None and right_number is not None:
+        return abs(left_number - right_number) > TOLERANCE
+
+    # Neither side is missing and at least one isn't a valid number --
+    # e.g. two names. sanitize_number can't tell them apart, so fall back
+    # to a plain comparison.
+    return left != right
 
 
 def compare_rows(expected, actual, key_fields) -> list[str]:
@@ -60,11 +82,21 @@ def compare_breaks(expected, actual) -> list[str]:
         return []
     if expected is None or actual is None:
         return [f"breaks presence differs: {expected!r} vs {actual!r}"]
-    return [
+
+    problems: list[str] = []
+    if len(expected) != len(actual):
+        # zip() below silently drops the tail of the longer side; without
+        # this, a shortened breaks list would report zero mismatches.
+        problems.append(
+            f"breaks length differs: expected {len(expected)}, got {len(actual)}"
+        )
+
+    problems.extend(
         f"break {index} expected {left!r}, got {right!r}"
         for index, (left, right) in enumerate(zip(expected, actual))
         if _values_differ(left, right)
-    ]
+    )
+    return problems
 
 
 def _request(api_url: str, path: str, params: dict | None = None):
