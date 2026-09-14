@@ -85,6 +85,23 @@ def test_lista_nulls_bounds_for_empty_geometry(make_gdf):
     assert rows[0]["max_lat"] is None
 
 
+def test_lista_nulls_missing_metro_name(make_gdf):
+    # Two rows, one with a real name_metro, force pandas to infer a string
+    # dtype for the column — under that dtype a bare None row is stored as
+    # float NaN rather than None, which is the coercion this guards against.
+    gdf = make_gdf(
+        [
+            {"code_tract": "Total", "code_muni": "1", "name_metro": None},
+            {"code_tract": "Total", "code_muni": "2"},
+        ]
+    )
+
+    rows = build_municipios_lista(gdf)
+
+    outside_metro = next(row for row in rows if row["code_muni"] == "1")
+    assert outside_metro["name_metro"] is None
+
+
 def test_municipios_rankings_carry_code_and_metro_as_strings(make_gdf):
     rows = build_municipios_rankings(make_gdf([{"code_tract": "Total"}]))
 
@@ -99,6 +116,23 @@ def test_municipios_rankings_null_non_finite_metrics(make_gdf):
     rows = build_municipios_rankings(gdf)
 
     assert rows[0]["index_h"] is None
+
+
+def test_municipios_rankings_null_missing_metro_name(make_gdf):
+    # Two rows, one with a real name_metro, force pandas to infer a string
+    # dtype for the column — under that dtype a bare None row is stored as
+    # float NaN rather than None, which is the coercion this guards against.
+    gdf = make_gdf(
+        [
+            {"code_tract": "Total", "code_muni": "1", "name_metro": None},
+            {"code_tract": "Total", "code_muni": "2"},
+        ]
+    )
+
+    rows = build_municipios_rankings(gdf)
+
+    outside_metro = next(row for row in rows if row["code_muni"] == "1")
+    assert outside_metro["name_metro"] is None
 
 
 def test_reg_metro_rankings_are_keyed_by_metro_name(make_gdf):

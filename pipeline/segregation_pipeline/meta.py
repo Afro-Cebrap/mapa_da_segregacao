@@ -27,6 +27,16 @@ def _metrics(row) -> dict:
     return {metric: sanitize_number(row[metric]) for metric in RANKING_METRICS}
 
 
+def _text_or_none(value):
+    """Return a text field as-is, or None for missing values.
+
+    Guards every raw text column against the pandas string-dtype coercion of
+    None to a float NaN, which would otherwise serialize as the invalid JSON
+    token NaN instead of null.
+    """
+    return None if pd.isna(value) else value
+
+
 def build_municipios_lista(gdf: gpd.GeoDataFrame) -> list[dict]:
     """Geometry-free municipality lookup, with the 4326 bbox used to frame the
     map on selection. abbrev_state is new here: it lets SearchBar drop its
@@ -46,16 +56,13 @@ def build_municipios_lista(gdf: gpd.GeoDataFrame) -> list[dict]:
             bounds = (None, None, None, None)
         else:
             bounds = tuple(sanitize_number(value) for value in geometry.bounds)
-        name_muni = row["name_muni"]
-        if pd.isna(name_muni):
-            name_muni = None
         rows.append(
             {
                 "code_muni": as_code(row["code_muni"]),
-                "name_muni": name_muni,
+                "name_muni": _text_or_none(row["name_muni"]),
                 "code_state": as_code(row["code_state"]),
-                "name_metro": row["name_metro"],
-                "abbrev_state": row["abbrev_state"],
+                "name_metro": _text_or_none(row["name_metro"]),
+                "abbrev_state": _text_or_none(row["abbrev_state"]),
                 "min_lng": bounds[0],
                 "min_lat": bounds[1],
                 "max_lng": bounds[2],
@@ -71,7 +78,7 @@ def build_municipios_rankings(gdf: gpd.GeoDataFrame) -> list[dict]:
     return [
         {
             "code_muni": as_code(row["code_muni"]),
-            "name_metro": row["name_metro"],
+            "name_metro": _text_or_none(row["name_metro"]),
             **_metrics(row),
         }
         for _, row in gdf.iterrows()
@@ -80,6 +87,6 @@ def build_municipios_rankings(gdf: gpd.GeoDataFrame) -> list[dict]:
 
 def build_reg_metro_rankings(gdf: gpd.GeoDataFrame) -> list[dict]:
     return [
-        {"name_metro": row["name_metro"], **_metrics(row)}
+        {"name_metro": _text_or_none(row["name_metro"]), **_metrics(row)}
         for _, row in gdf.iterrows()
     ]
