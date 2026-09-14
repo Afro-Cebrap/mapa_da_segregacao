@@ -121,3 +121,5 @@ prisma/dev.db-journal
 # =========================
 .fuse_hidden*
 .nfs*
+# Scratch de controle do subagent-driven-development (ledger, briefs, reviews)
+.superpowers/
