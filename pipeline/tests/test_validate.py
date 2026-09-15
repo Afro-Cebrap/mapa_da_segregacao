@@ -1,4 +1,12 @@
-from validate import compare_breaks, compare_rows
+from validate import MUNI_SAMPLE_SIZE, _sample_muni_codes, _values_differ, compare_breaks, compare_rows
+
+
+def _make_muni_dir(tmp_path, year, codes):
+    muni_dir = tmp_path / "scopes" / "setores" / str(year) / "muni"
+    muni_dir.mkdir(parents=True)
+    for code in codes:
+        (muni_dir / f"{code}.json").write_text("{}", encoding="utf-8")
+    return tmp_path
 
 
 def test_compare_rows_reports_nothing_when_identical():
@@ -122,3 +130,55 @@ def test_compare_rows_treats_none_and_nan_as_equivalent_missing_values():
     )
 
     assert problems == []
+
+
+def test_compare_rows_reports_a_field_missing_from_the_generated_side():
+    # Repro from the branch review: iterating only the generated row's
+    # fields let a column the live API sent -- but the generated artifact
+    # dropped -- pass through unreported.
+    problems = compare_rows(
+        [{"code_muni": "1", "name_muni": "X"}],
+        [{"code_muni": "1", "name_muni": "X", "code_state": "35"}],
+        ("code_muni",),
+    )
+
+    assert any("code_state" in problem for problem in problems)
+
+
+def test_compare_rows_reports_a_field_missing_from_the_live_side():
+    problems = compare_rows(
+        [{"code_muni": "1", "name_muni": "X", "code_state": "35"}],
+        [{"code_muni": "1", "name_muni": "X"}],
+        ("code_muni",),
+    )
+
+    assert any("code_state" in problem for problem in problems)
+
+
+def test_values_differ_treats_a_numeric_string_and_a_number_as_different():
+    # Identifier fields serialize as strings in the generated JSON; the live
+    # API returns some of the same fields as ints. sanitize_number parses
+    # both into equal floats and would hide exactly this mismatch.
+    assert _values_differ("35", 35) is True
+
+
+def test_values_differ_treats_equal_strings_as_equal():
+    assert _values_differ("35", "35") is False
+
+
+def test_sample_muni_codes_returns_everything_below_the_sample_size(tmp_path):
+    out_dir = _make_muni_dir(tmp_path, 2022, ["1", "2", "3"])
+
+    assert _sample_muni_codes(out_dir, 2022) == ["1", "2", "3"]
+
+
+def test_sample_muni_codes_caps_at_the_sample_size_and_is_deterministic(tmp_path):
+    codes = [str(code) for code in range(MUNI_SAMPLE_SIZE + 50)]
+    out_dir = _make_muni_dir(tmp_path, 2022, codes)
+
+    first = _sample_muni_codes(out_dir, 2022)
+    second = _sample_muni_codes(out_dir, 2022)
+
+    assert len(first) == MUNI_SAMPLE_SIZE
+    assert first == second
+    assert set(first) <= set(codes)
