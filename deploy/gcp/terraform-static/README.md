@@ -33,6 +33,15 @@ separados** (`staging.tfstate` / `prod.tfstate`) para que um `apply` num
 ambiente nunca enxergue nem sobrescreva os recursos do outro, mesmo rodando
 do mesmo diretório de módulo.
 
+**O state é local, não remoto, e está no `.gitignore` raiz** (`*.tfstate`).
+Os dois arquivos vivem em `deploy/gcp/terraform-static/{staging,prod}.tfstate`
+depois do primeiro `apply` de cada um e nunca são versionados. Perder esses
+arquivos (disco morto, pasta apagada por engano) significa que o Terraform
+deixa de saber que o bucket e os recursos associados existem — ele não some
+do GCP, mas passa a ser gerenciado manualmente até alguém reconstruir o
+state (por exemplo com `terraform import`). Faça backup desses dois arquivos
+fora do git.
+
 ### Antes de aplicar em produção: o alerta de orçamento
 
 `prod.tfvars` vem com `billing_account = ""` e `budget_alert_emails = []`,
@@ -92,11 +101,24 @@ Só execute isto **depois de observar produção funcionando** com o bucket
 estático (mapa carregando tiles e rankings do novo `data_base_url`, sem
 chamadas a `painel-api`). Faça nesta ordem:
 
-1. **Apagar o serviço Cloud Run** `painel-api`:
+1. **Apagar o serviço Cloud Run** `painel-api` — via Terraform, não com
+   `gcloud` direto. `google_cloud_run_v2_service.api` e
+   `google_sql_database_instance.main` vivem no **mesmo módulo raiz**
+   (`deploy/gcp/terraform/`). Se o serviço for apagado fora do Terraform, o
+   state fica desatualizado: no passo 3, o `terraform apply` para desligar a
+   `deletion_protection` do Cloud SQL faz um refresh, vê o serviço ausente e
+   recria o Cloud Run (a imagem no Artifact Registry ainda existe nesse
+   ponto — só é removida no passo 4 — então o `create` funciona
+   silenciosamente). Destrua pelo Terraform para manter state e realidade
+   sincronizados:
    ```bash
-   gcloud run services delete painel-api \
-     --project mapa-da-segregacao --region us-central1
+   cd deploy/gcp/terraform
+   terraform destroy \
+     -target=google_cloud_run_v2_service.api \
+     -target=google_cloud_run_v2_service_iam_member.public
    ```
+   **Leia o plano antes de confirmar**: deve mostrar exatamente duas
+   destruições (o serviço e o IAM member) e nada mais.
 
 2. **Exportar o Cloud SQL para o Cloud Storage antes de destruir a
    instância.** O parquet de origem é a fonte de verdade real, mas um
@@ -118,9 +140,14 @@ chamadas a `painel-api`). Faça nesta ordem:
    ```bash
    cd deploy/gcp/terraform
    # editar cloudsql.tf: deletion_protection = false
-   terraform apply    # aplica só a mudança da flag
+   terraform apply -target=google_sql_database_instance.main
    terraform destroy -target=google_sql_database_instance.main
    ```
+   **Leia o plano do `apply` antes de confirmar**: com o `-target`, deve
+   mostrar exatamente uma mudança (a flag `deletion_protection` da
+   instância) — nada de `create`. Se o serviço Cloud Run aparecer no plano
+   de qualquer forma, pare: significa que o passo 1 não foi feito pelo
+   Terraform e o state ainda está fora de sincronia.
 
 4. **Remover o Artifact Registry, o WIF e as service accounts** que só
    existiam para o deploy do Cloud Run:
