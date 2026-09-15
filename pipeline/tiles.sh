@@ -13,10 +13,25 @@ LAYER="setores_layer"
 # If low zoom is dropping too many tracts, relax -ps BEFORE relaxing the drop
 # flag: losing vertex precision at z4 is far less visible than losing whole
 # tracts. See pipeline/README.md.
-TIPPECANOE_FLAGS=(
+#
+# Maxzoom is per-resource, not uniform: setores goes to z14 to match the
+# tract-level fidelity the old live DB served at high zoom (its base table,
+# not a simplified one); municípios and regiões metropolitanas were already
+# capped at z12 by the frontend before this migration and stay there.
+# app/src/components/dashboard/DashboardMap.tsx's ARCHIVE_MAXZOOM must be
+# kept in sync with these values.
+maxzoom_for() {
+  case "$1" in
+    setores) echo 14 ;;
+    municipios) echo 12 ;;
+    reg_metropo) echo 12 ;;
+    *) echo "unknown resource for maxzoom: $1" >&2; exit 1 ;;
+  esac
+}
+
+COMMON_TIPPECANOE_FLAGS=(
   --layer="$LAYER"
   --minimum-zoom=0
-  --maximum-zoom=12
   -ps
   --read-parallel
   --drop-densest-as-needed
@@ -31,12 +46,26 @@ mkdir -p "$OUT/tiles"
 
 for SOURCE in "$OUT"/geojsonseq/*.geojsonl; do
   NAME="$(basename "$SOURCE" .geojsonl)"
-  echo ">>> Tiling $NAME"
-  tippecanoe "${TIPPECANOE_FLAGS[@]}" \
+  RESOURCE="${NAME%_*}"
+  MAXZOOM="$(maxzoom_for "$RESOURCE")"
+  echo ">>> Tiling $NAME (maximum-zoom=$MAXZOOM)"
+  tippecanoe "${COMMON_TIPPECANOE_FLAGS[@]}" \
+    --maximum-zoom="$MAXZOOM" \
     --output="$OUT/tiles/${NAME}.pmtiles" \
     "$SOURCE"
 done
 
 echo ">>> Tilesets:"
 ls -lh "$OUT/tiles"
-echo ">>> Done. Review the sizes above before uploading."
+
+echo ">>> Actual maxzoom per archive (compare against the values above —"
+echo ">>> --extend-zooms-if-still-dropping can push the real maxzoom higher"
+echo ">>> than requested; if it does, DashboardMap.tsx's ARCHIVE_MAXZOOM"
+echo ">>> must be updated to match, or the extra levels are generated,"
+echo ">>> uploaded and paid for but never requested by the frontend):"
+for TILESET in "$OUT"/tiles/*.pmtiles; do
+  echo "--- $(basename "$TILESET")"
+  pmtiles-show "$TILESET" | grep -i zoom
+done
+
+echo ">>> Done. Review the sizes and zoom levels above before uploading."

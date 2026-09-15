@@ -46,7 +46,11 @@ import {
 	useIndicatorRankings,
 } from '@/hooks/useIndicatorRankings';
 import { useMapLoadingState } from '@/hooks/useMapLoadingState';
-import type { DashboardMapProps, HoverInfo } from '@/types/dashboard.types';
+import type {
+	DashboardMapProps,
+	HoverInfo,
+	LayerId,
+} from '@/types/dashboard.types';
 
 const ACTIVE_SOURCE_ID = 'active-geometry-data';
 // Fonte de municípios usada só para desenhar o contorno destacado do município
@@ -57,10 +61,18 @@ const MUNI_HIGHLIGHT_SOURCE_ID = 'muni-highlight-source';
 // Camada interna do MVT emitido pelo backend (ST_AsMVT('setores_layer', ...));
 // os tres endpoints usam o mesmo nome.
 const TILE_SOURCE_LAYER = 'setores_layer';
-// The static archives are all built by tippecanoe with --maximum-zoom=12
-// (pipeline/tiles.sh). Above this zoom MapLibre overzooms the z12 tiles it
-// already has instead of requesting tiles that do not exist in the archive.
-const ARCHIVE_MAXZOOM = 12;
+// Each static archive is built by tippecanoe with its own --maximum-zoom
+// (pipeline/tiles.sh). Setores goes to z14, matching the fidelity the old
+// live DB served at high zoom (the base table, not a simplified one) —
+// municípios and regiões metropolitanas were already capped at z12 before
+// this migration and stay there. Above an archive's maxzoom, MapLibre
+// overzooms the tiles it already has instead of requesting ones that do
+// not exist.
+const ARCHIVE_MAXZOOM: Record<LayerId, number> = {
+	setores: 14,
+	municipios: 12,
+	'regioes-metropolitanas': 12,
+};
 
 const ESCOLAS_SOURCE_ID = 'escolas-source';
 
@@ -529,7 +541,7 @@ function DashboardMap({
 					id={ACTIVE_SOURCE_ID}
 					type="vector"
 					tiles={[tileUrl]}
-					maxzoom={ARCHIVE_MAXZOOM}
+					maxzoom={ARCHIVE_MAXZOOM[activeLayerId]}
 				>
 					{showBaseFill && (
 						<Layer {...tileBaseFillLayer} beforeId={beforeId} />
@@ -546,7 +558,7 @@ function DashboardMap({
 						id={MUNI_HIGHLIGHT_SOURCE_ID}
 						type="vector"
 						tiles={[muniBoundaryTileUrl]}
-						maxzoom={ARCHIVE_MAXZOOM}
+						maxzoom={ARCHIVE_MAXZOOM.municipios}
 					>
 						<Layer
 							{...tileMuniHighlightLayer}

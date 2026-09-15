@@ -5,3 +5,4 @@ numpy
 shapely
 requests
 pytest
+pmtiles
