@@ -26,11 +26,23 @@ resource "google_project_service" "billingbudgets" {
   disable_on_destroy = false
 }
 
+# google_monitoring_notification_channel below is a Cloud Monitoring resource;
+# without this API enabled its create call fails. Gated the same as the rest
+# of the budget resources so it stays optional when billing_account /
+# budget_alert_emails are left empty (see locals.budget_enabled above).
+resource "google_project_service" "monitoring" {
+  count              = local.budget_enabled ? 1 : 0
+  project            = var.project
+  service            = "monitoring.googleapis.com"
+  disable_on_destroy = false
+}
+
 resource "google_monitoring_notification_channel" "budget_email" {
   count        = local.budget_enabled ? length(var.budget_alert_emails) : 0
   project      = var.project
   display_name = "Alerta de orcamento - ${var.budget_alert_emails[count.index]}"
   type         = "email"
+  depends_on   = [google_project_service.monitoring]
 
   labels = {
     email_address = var.budget_alert_emails[count.index]

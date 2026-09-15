@@ -101,7 +101,7 @@ def write_geojsonseq(gdf: gpd.GeoDataFrame, resource: str, path) -> int:
             if geometry is None or geometry.is_empty:
                 continue
             feature = build_feature(resource, row, mapping(geometry))
-            handle.write(json.dumps(feature, ensure_ascii=False))
+            handle.write(json.dumps(feature, ensure_ascii=False, allow_nan=False))
             handle.write("\n")
             written += 1
 

@@ -17,9 +17,9 @@ from segregation_pipeline.features import write_geojsonseq
 from segregation_pipeline.manifest import build_manifest
 from segregation_pipeline.selection import (
     RESOURCES,
-    TRACT_CODE_LENGTH,
     YEARS,
     select_rows,
+    setores_rows,
 )
 from segregation_pipeline.source import (
     drop_exact_duplicates,
@@ -82,11 +82,10 @@ def main() -> None:
             gc.collect()
 
     # Scope files need every unit_type row, not the resolved single row per
-    # tract, so they read the deduplicated frame directly.
+    # tract, so they read the deduplicated frame directly via setores_rows,
+    # not select_rows.
     for year in YEARS:
-        setores_all = gdf[
-            (gdf["code_tract"].str.len() == TRACT_CODE_LENGTH) & (gdf["year"] == year)
-        ]
+        setores_all = setores_rows(gdf, year)
         if setores_all.empty:
             continue
         written = scopes.write_scope_files(setores_all, year, out_dir)

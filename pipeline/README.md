@@ -13,6 +13,12 @@ até o fim antes de começar, especialmente os avisos abaixo.
 
 ## 1. Pré-requisitos
 
+**Rode todos os comandos deste documento no Git Bash.** Os exemplos abaixo
+usam sintaxe POSIX (atribuição de variável inline, `./upload.sh`), que dá
+erro de parse no PowerShell/cmd. Isso inclui os comandos com caminhos estilo
+Windows (`venv\Scripts\python`) que aparecem dentro de blocos ```bash — eles
+funcionam normalmente no Git Bash, que entende ambos os estilos de caminho.
+
 - **Docker Desktop** instalado e rodando. Tippecanoe não tem build para
   Windows, então o pipeline inteiro roda dentro de um container Linux
   (`pipeline/Dockerfile`).
@@ -21,6 +27,19 @@ até o fim antes de começar, especialmente os avisos abaixo.
   credenciais.
 - **O parquet de origem numa pasta local.** Qualquer pasta serve; você aponta
   para ela com `PARQUET_DIR` no passo seguinte.
+- **Memória.** O parquet de origem tem ~7M linhas; `build.py` faz um dedupe
+  do frame inteiro antes de fatiar por recurso/ano (deliberado — ver
+  `segregation_pipeline/build.py` e o histórico do PR para o porquê de não
+  fatiar primeiro), e `source.normalize` faz uma cópia própria do
+  GeoDataFrame por cima disso, então o pico de memória chega a segurar duas
+  cópias inteiras do dataset ao mesmo tempo. `docker-compose.yml` não define
+  limite de memória para o container, e o limite padrão do Docker Desktop no
+  Windows costuma ficar bem abaixo do necessário para isso. **Aumente o
+  limite de memória do Docker Desktop antes do primeiro run** — Settings →
+  Resources → Memory (ou, em versões mais novas, Settings → Resources →
+  Advanced) — para um valor generoso (vários GB de folga acima do que você
+  acha que o parquet ocupa em disco); um OOM kill do container aparece só
+  como o processo morrendo sem uma mensagem de erro clara.
 
 ### Aviso: a imagem Docker nunca foi construída neste projeto
 
@@ -90,6 +109,47 @@ em zoom baixo, afrouxe o `-ps` em `tiles.sh` antes de mexer no
 `--drop-densest-as-needed`.** Perder precisão de vértice em z4 é muito menos
 visível no mapa do que perder setores inteiros do resultado.
 
+### Maxzoom é por recurso, não uniforme
+
+`--maximum-zoom` varia por recurso em `tiles.sh` (função `maxzoom_for`):
+
+| Recurso       | `--maximum-zoom` |
+| ------------- | ----------------- |
+| `setores`     | 14                 |
+| `municipios`  | 12                 |
+| `reg_metropo` | 12                 |
+
+`setores` vai a z14 para preservar a fidelidade que o banco ao vivo servia
+em zoom alto (a tabela base, não uma simplificada — ver
+`geo_comum.resolver_tabela_por_zoom` em `api/`); `municipios` e
+`reg_metropo` já eram limitados a z12 pelo frontend antes desta migração e
+continuam assim. Isso significa que o arquivo `setores_<ano>.pmtiles` demora
+mais para tilar e fica maior que os outros dois — não é sinal de erro na
+seleção de dados.
+
+`app/src/components/dashboard/DashboardMap.tsx`'s `ARCHIVE_MAXZOOM` precisa
+ficar em sincronia com esses valores por recurso.
+
+`tiles.sh` imprime, ao final, o maxzoom real de cada arquivo gerado (via
+`pmtiles-show`) ao lado dos tamanhos — ver a próxima subseção sobre por que
+isso pode divergir do valor pedido.
+
+### `--extend-zooms-if-still-dropping` pode gerar mais zoom do que o pedido
+
+`tiles.sh` também passa `--extend-zooms-if-still-dropping`, que instrui o
+tippecanoe a subir o maxzoom real do arquivo além do `--maximum-zoom` pedido
+se ainda estiver descartando feições no zoom mais alto. Isso pode gerar,
+publicar e cobrar por níveis de zoom que o frontend nunca vai pedir, porque
+`DashboardMap.tsx` define estaticamente o maxzoom que acredita que cada
+arquivo tem.
+
+**Depois de rodar `tiles.sh`, confira a seção "Actual maxzoom per archive"
+impressa ao final contra a tabela acima.** Se algum arquivo saiu com maxzoom
+maior que o documentado, `app/src/components/dashboard/DashboardMap.tsx`'s
+`ARCHIVE_MAXZOOM` precisa ser atualizado para aquele recurso antes de
+publicar — senão os tiles extras existem no bucket mas o MapLibre nunca os
+busca.
+
 ### Aviso: testando com uma amostra pequena
 
 Testar com um parquet filtrado ou reduzido é um bom primeiro passo antes de
@@ -134,9 +194,6 @@ venv\Scripts\python -m pip install -r requirements.txt
 venv\Scripts\python validate.py --out ./out --api-url http://127.0.0.1:8000
 ```
 
-(Se for manter esse venv localmente, adicione `venv/` ao `pipeline/.gitignore`
-— ele não está lá hoje porque este venv nunca existiu antes.)
-
 ### Opção B — dentro do container Docker
 
 A imagem já tem `requests` instalado (é parte do `pip install -r
@@ -167,6 +224,57 @@ para investigar antes de publicar — não para publicar assim mesmo. Esse é o
 passo que autoriza destruir o banco de produção mais adiante (seção 4 de
 `deploy/gcp/terraform-static/README.md`); não pule nem trate uma falha aqui
 como cosmética.
+
+### O que `validate.py` cobre — e o que não cobre
+
+Uma saída limpa **não** significa que tudo foi comparado byte a byte contra
+a API antiga. O que `validate.py` de fato verifica:
+
+- Os artefatos `meta/` (lista de municípios, rankings de municípios e de
+  regiões metropolitanas) para os dois anos.
+- Todos os arquivos de escopo `scopes/setores/<ano>/metro/*.json` (uma RM
+  por arquivo — são poucas, então a cobertura aqui é integral).
+- Uma **amostra determinística** dos arquivos
+  `scopes/setores/<ano>/muni/*.json` (`MUNI_SAMPLE_SIZE` em `validate.py`,
+  hoje 25 por ano) — não o conjunto inteiro. São ~5.500 municípios fora de
+  qualquer RM; validar todos exigiria ~5.500 × 12 métricas × 2 anos de
+  chamadas a `/api/setores/escala`, o suficiente para inviabilizar rodar
+  isto antes de cada publicação. A amostra usa seed fixa, então uma
+  regressão que caia num código amostrado é pega de novo em toda execução,
+  mas municípios fora da amostra não têm checagem automática nenhuma.
+
+O que `validate.py` **não** verifica, em nenhuma hipótese:
+
+- **Os próprios arquivos `.pmtiles`.** O plano original (spec §8) previa
+  decodificar uma amostra de tiles e comparar propriedade por propriedade
+  contra o endpoint de tiles ao vivo. Isso foi deliberadamente descartado:
+  adicionar dependências e código de decodificação não testados ao único
+  script que autoriza um teardown irreversível criaria falsa confiança, e
+  não há hoje nenhum arquivo `.pmtiles` real nem dataset para exercitar esse
+  código nem uma vez. Trate a geometria e as propriedades dentro dos tiles
+  como não verificadas por este script.
+
+### Checagem manual complementar (obrigatória antes de produção)
+
+Como os tiles não têm checagem automática, faça uma checagem manual visual
+depois de publicar em staging (passo 5), com o painel apontando para o
+bucket de staging (`VITE_DATA_URL`) e a API legada local rodando lado a
+lado:
+
+1. Abra o painel apontando para o `data_base_url` de staging.
+2. Escolha alguns setores censitários espalhados pelo mapa e compare os
+   valores exibidos no popup contra a mesma consulta na API legada
+   (`/api/setores/indicadores` ou o Swagger em `http://127.0.0.1:8000/docs`).
+3. **Inclua pelo menos um setor dentro de uma região metropolitana e um
+   município fora de qualquer RM** — essa é exatamente a resolução de
+   `unit_type` (`metro` vs. `muni`) que não tem nenhuma checagem automática
+   equivalente (a amostra de `muni/` acima cobre os arquivos de escopo, não
+   os tiles).
+4. Confira também zoom alto num setor (para checar a fidelidade z14 — ver
+   seção 3) e zoom baixo numa área densa.
+
+Isso não substitui `validate.py`, mas é o que compensa a lacuna deixada pela
+falta de decodificação de tiles.
 
 ## 5. Publicar
 

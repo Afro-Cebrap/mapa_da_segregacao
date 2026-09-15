@@ -46,6 +46,22 @@ explicitamente antes do build, o que tem precedência sobre o arquivo.
 Não existe mais `VITE_API_URL`, `VITE_API_KEY` nem chamada a uma API em
 produção — isso foi removido na migração para tiles estáticos.
 
+### Servir `pipeline/out` localmente em `/data`
+
+O default `http://localhost:3000/data` não é automático — nada no Vite faz
+proxy para `pipeline/out` nem cria essa pasta sozinho. Para reproduzir esse
+default, copie ou (melhor, para não duplicar o conteúdo a cada regeração)
+crie um link simbólico de `pipeline/out` para `app/public/data`, que o Vite
+serve como estático na raiz do site:
+
+```bash
+# a partir da raiz do repo, Git Bash
+ln -s "$(pwd)/pipeline/out" app/public/data
+```
+
+`app/public/data` está no `.gitignore` — não faça commit do conteúdo gerado
+pelo pipeline.
+
 ## Estrutura
 
 ```
@@ -105,7 +121,9 @@ sequenceDiagram
 
 `app/.env.production` já traz `VITE_DATA_URL` apontando para o bucket de
 produção; o CI pode sobrescrevê-la explicitamente antes do build, o que tem
-precedência sobre o arquivo. Para deploy manual:
+precedência sobre o arquivo. Para deploy manual (rode no Git Bash — a
+atribuição de variável inline abaixo é sintaxe POSIX e dá erro de parse no
+PowerShell/cmd):
 
 ```bash
 cd app

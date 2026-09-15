@@ -1,7 +1,10 @@
 """JSON value rules shared by every artifact writer.
 
 Mirrors geo_comum.sanitizar_float_json and geo_comum._linha_indicador so the
-static payloads are byte-comparable with the legacy API responses.
+static payloads match the legacy API responses' values -- not byte-for-byte
+(this module normalizes Decimal and int to float, and validate.py compares
+with a 1e-9 tolerance precisely because exact byte equality does not hold),
+but equivalent under that tolerance.
 """
 
 import math
@@ -31,6 +34,14 @@ def as_code(value):
 
     Numeric codes are rendered without a decimal tail: the frontend matches
     these against Set<string>, where "35.0" would silently never match "35".
+
+    Looks like source._stringify_identifier, but is NOT interchangeable with
+    it and must not be merged into it: this function returns None for a
+    missing value because that is what a JSON writer needs for "no value".
+    _stringify_identifier instead passes NaN through unchanged, because it
+    runs during normalize() and selection.py's resource masks still need to
+    call .str.len() on the column afterwards -- which None would break (NaN
+    does not).
     """
     if value is None:
         return None

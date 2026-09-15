@@ -14,6 +14,9 @@ TRACT_CODE_LENGTH = 15
 
 
 def _resource_mask(gdf: gpd.GeoDataFrame, resource: str):
+    # The .str accessor below requires code_tract/code_muni to already be
+    # strings -- that's normalize() (source.py), not this function. Callers
+    # must pass a gdf that has already gone through normalize().
     if resource == "setores":
         return gdf["code_tract"].str.len() == TRACT_CODE_LENGTH
     if resource == "municipios":
@@ -49,3 +52,16 @@ def select_rows(gdf: gpd.GeoDataFrame, resource: str, year: int) -> gpd.GeoDataF
     if resource == "municipios":
         return selected[selected["unit_type"] == "muni"]
     return selected[selected["unit_type"] == "metro"]
+
+
+def setores_rows(gdf: gpd.GeoDataFrame, year: int) -> gpd.GeoDataFrame:
+    """Every tract-level row for one census year, unit_type unresolved.
+
+    Deliberately NOT select_rows: the scope files (scopes.write_scope_files)
+    need every unit_type row per tract -- both 'metro' and 'muni' rows side
+    by side -- while select_rows(gdf, 'setores', year) collapses to a single
+    resolved row per tract via resolve_default_unit_type. Shares
+    _resource_mask's 'setores' branch with select_rows so the two definitions
+    of "a tract row" cannot drift apart.
+    """
+    return gdf[_resource_mask(gdf, "setores") & (gdf["year"] == year)]

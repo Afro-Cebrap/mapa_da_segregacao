@@ -50,6 +50,14 @@ def _stringify_identifier(value):
     pandas.DataFrame.to_parquet as double); a plain astype(str) would turn
     35.0 into "35.0", which then silently never matches the string "35"
     used elsewhere in the panel.
+
+    Looks like serialization.as_code, but is NOT interchangeable with it and
+    must not be merged into it: this function passes a missing value through
+    unchanged (as NaN) so that callers like selection.py's resource masks can
+    still call .str.len() on the column afterwards (NaN survives; None would
+    break the string dtype .str accessor needs). as_code, used at artifact
+    write time rather than during normalize(), returns None for the same
+    input because a bare None is what json.dumps needs for "no value".
     """
     if pd.isna(value):
         return value

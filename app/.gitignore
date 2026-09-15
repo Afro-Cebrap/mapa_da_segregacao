@@ -28,3 +28,7 @@ dist-ssr
 *-debug.log
 .runtimeconfig.json
 .claude/*
+
+# Local copy/symlink of pipeline/out served at /data by `bun dev` — see
+# README.md's "Servir pipeline/out localmente em /data".
+public/data
