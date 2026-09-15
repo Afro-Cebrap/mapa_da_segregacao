@@ -37,11 +37,6 @@ export interface SegregationProperties {
 	percent_preta_ou_parda: number | null;
 }
 
-export interface SegregationDto extends SegregationProperties {
-	geometry?: GeoJSON.Geometry | null;
-	geom?: GeoJSON.Geometry | null;
-}
-
 // Linha enxuta do ranking de indicadores (endpoint /api/setores/indicadores):
 // identificador + métricas de segregação, sem geometria nem composição racial.
 export type RankingIndicadoresRow = Pick<
@@ -57,46 +52,16 @@ export type RankingIndicadoresRow = Pick<
 	| 'iso_pp_pp'
 >;
 
-export interface SegregationFeature extends GeoJSON.Feature<
-	GeoJSON.Geometry,
-	SegregationProperties
-> {
-	type: 'Feature';
-	id?: string;
-	geometry: GeoJSON.Geometry;
-	properties: SegregationProperties;
-}
-
-export interface SegregationFeatureCollection extends GeoJSON.FeatureCollection<
-	GeoJSON.Geometry,
-	SegregationProperties
-> {
-	type: 'FeatureCollection';
-	features: SegregationFeature[];
-}
-
-export interface SetoresViewportParams {
-	bbox: [number, number, number, number];
-	zoom: number;
-}
-
-export type SetorProperties = SegregationProperties;
-export type SetorDto = SegregationDto;
-export type SetoresFeature = SegregationFeature;
-export type SetoresFeatureCollection = SegregationFeatureCollection;
-
-export const EMPTY_SETORES_FEATURE_COLLECTION: SegregationFeatureCollection = {
-	type: 'FeatureCollection',
-	features: [],
-};
-
 export interface MunicipioListaDto {
 	code_muni: string;
 	name_muni: string | null;
 	code_state: string | null;
+	abbrev_state: string | null;
 	name_metro: string | null;
 	min_lng?: number | null;
 	min_lat?: number | null;
 	max_lng?: number | null;
 	max_lat?: number | null;
 }
+
+export type SegregationEndpoint = 'municipios' | 'setores' | 'reg_metro';

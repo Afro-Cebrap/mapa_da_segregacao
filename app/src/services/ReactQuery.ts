@@ -1,14 +1,13 @@
 import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query';
-import axios from 'axios';
+import { StaticDataHttpError } from '@/services/staticData/client';
 
 const MAX_RETRIES = 2;
 
 const shouldRetry = (failureCount: number, error: unknown) => {
 	if (failureCount >= MAX_RETRIES) return false;
 
-	if (axios.isAxiosError(error)) {
-		const status = error.response?.status;
-		if (status && [400, 401, 403, 404, 429].includes(status)) {
+	if (error instanceof StaticDataHttpError) {
+		if ([400, 401, 403, 404, 429].includes(error.status)) {
 			return false;
 		}
 	}

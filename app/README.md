@@ -10,7 +10,7 @@ React 19 + TypeScript + Vite. Deploy estático via Firebase Hosting.
 - Bun (package manager — não use npm/yarn)
 - MapLibre GL via `@vis.gl/react-maplibre` (tiles vetoriais)
 - TanStack Query (cache de requisições)
-- Axios (cliente HTTP)
+- PMTiles (protocolo `pmtiles://` para MapLibre ler tiles direto do bucket) + `fetch` nativo para os artefatos JSON
 - Tailwind CSS 4 + Radix UI / shadcn
 - React Router v7
 
@@ -23,6 +23,8 @@ bun dev          # http://localhost:3000
 bun run build    # dist/
 bun run preview  # serve dist/ localmente
 bun run lint
+bun run test       # vitest run
+bun run test:watch # vitest, modo watch
 bun run format
 ```
 
@@ -30,10 +32,35 @@ bun run format
 
 ```env
 # app/.env.local
-VITE_API_URL=http://127.0.0.1:8000   # padrão em dev
+VITE_DATA_URL=http://localhost:3000/data   # padrão em dev, sem essa variável
 ```
 
-Em produção, `VITE_API_URL` é injetado pelo CI com a URL do Cloud Run antes do `bun run build`.
+`VITE_DATA_URL` é a URL base do bucket público do Cloud Storage que guarda os
+tiles `.pmtiles` e os JSON estáticos (rankings, escalas, lookups) — ver
+`.env.example`. Em desenvolvimento, sem a variável definida, o app assume que
+`bun dev` está servindo o conteúdo de `pipeline/out` em `/data`. Em produção,
+`app/.env.production` já traz a URL do bucket de produção
+(`mapa-da-segregacao-dados`); o workflow de deploy também pode sobrescrevê-la
+explicitamente antes do build, o que tem precedência sobre o arquivo.
+
+Não existe mais `VITE_API_URL`, `VITE_API_KEY` nem chamada a uma API em
+produção — isso foi removido na migração para tiles estáticos.
+
+### Servir `pipeline/out` localmente em `/data`
+
+O default `http://localhost:3000/data` não é automático — nada no Vite faz
+proxy para `pipeline/out` nem cria essa pasta sozinho. Para reproduzir esse
+default, copie ou (melhor, para não duplicar o conteúdo a cada regeração)
+crie um link simbólico de `pipeline/out` para `app/public/data`, que o Vite
+serve como estático na raiz do site:
+
+```bash
+# a partir da raiz do repo, Git Bash
+ln -s "$(pwd)/pipeline/out" app/public/data
+```
+
+`app/public/data` está no `.gitignore` — não faça commit do conteúdo gerado
+pelo pipeline.
 
 ## Estrutura
 
@@ -49,12 +76,12 @@ src/
 │   ├── layouts/         # MainLayout, DashboardLayout
 │   └── ui/              # Radix UI / shadcn primitives
 ├── hooks/
-│   ├── useSetores.ts    # TanStack Query — viewport + indicadores
+│   ├── useSetores.ts    # TanStack Query sobre os artefatos estáticos: slugs, scope, escala
 │   ├── useIndicatorRankings.ts  # Ranking client-side por camada
-│   └── useLocationLookups.ts   # Cache de municípios (lista leve)
+│   └── useLocationLookups.ts   # Cache de municípios (lista leve, JSON estático)
 ├── services/
-│   ├── api.ts           # Axios instance (VITE_API_URL + auth)
-│   └── setores/         # Wrappers tipados para todos os endpoints
+│   ├── staticData/      # Cliente para os artefatos estáticos (config.ts, client.ts)
+│   └── setores/         # Wrappers tipados, inclui as URLs pmtiles:// dos tiles
 ├── constants/
 │   └── layers.ts        # Config das 3 camadas (setores/municípios/RMs)
 └── lib/
@@ -69,18 +96,16 @@ sequenceDiagram
     participant U as Usuário
     participant Map as MapLibre
     participant Q as TanStack Query
-    participant API as Cloud Run
+    participant B as Bucket público (Cloud Storage)
 
     U->>Map: pan/zoom
-    Map->>Q: bbox normalizado por zoom
-    Q->>API: GET /api/{layer}/tiles/{z}/{x}/{y}.pbf
-    API-->>Q: Protobuf (cache 24h)
-    Q-->>Map: tile vetorial
+    Map->>B: GET tiles/{layer}_{year}.pmtiles (via pmtiles://, Range requests)
+    B-->>Map: tile vetorial
 
     U->>Map: clica em feature
-    Map->>Q: useIndicatorRankings(layer)
-    Q->>API: GET /api/{layer}/indicadores
-    API-->>Q: JSON sem geometria
+    Map->>Q: useIndicatorRankings(layer) / useSetoresScope
+    Q->>B: GET meta/{...}.json ou scopes/setores/{year}/{...}.json
+    B-->>Q: JSON sem geometria (cacheado pelo TanStack Query)
     Q-->>U: ranking no painel lateral
 ```
 
@@ -94,10 +119,18 @@ sequenceDiagram
 
 ## Deploy
 
-O CI injeta `VITE_API_URL` automaticamente antes do build. Para deploy manual:
+`app/.env.production` já traz `VITE_DATA_URL` apontando para o bucket de
+produção; o CI pode sobrescrevê-la explicitamente antes do build, o que tem
+precedência sobre o arquivo. Para deploy manual (rode no Git Bash — a
+atribuição de variável inline abaixo é sintaxe POSIX e dá erro de parse no
+PowerShell/cmd):
 
 ```bash
 cd app
-VITE_API_URL=https://painel-api-2olyn5cqxq-uc.a.run.app bun run build
+VITE_DATA_URL=https://storage.googleapis.com/mapa-da-segregacao-dados bun run build
 firebase deploy --only hosting --project mapa-da-segregacao
 ```
+
+O valor de `VITE_DATA_URL` para cada ambiente vem do output `data_base_url`
+de `deploy/gcp/terraform-static/` — ver
+`deploy/gcp/terraform-static/README.md`.

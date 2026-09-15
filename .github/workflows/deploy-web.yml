@@ -10,7 +10,6 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
   deploy:
@@ -18,36 +17,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # WIF autentica o gcloud (resolver a URL do Cloud Run). O Firebase
-      # Hosting usa um refresh token de CI (secrets.FIREBASE_TOKEN), pois o
-      # firebase-tools nao aceita credencial WIF (external_account).
-      - id: auth
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
-          service_account: ${{ vars.DEPLOY_SA_EMAIL }}
-
-      - uses: google-github-actions/setup-gcloud@v2
       - uses: oven-sh/setup-bun@v2
 
-      - name: Resolve Cloud Run URL
-        run: |
-          URL=$(gcloud run services describe ${{ vars.RUN_SERVICE }} \
-            --region ${{ vars.GCP_REGION }} \
-            --project ${{ vars.GCP_PROJECT_INFRA }} \
-            --format='value(status.url)')
-          if [ -z "$URL" ]; then
-            echo "ERRO: nao foi possivel resolver a URL do Cloud Run." >&2
-            exit 1
-          fi
-          echo "Cloud Run URL: $URL"
-          echo "VITE_API_URL=$URL" >> "$GITHUB_ENV"
-
+      # The map now reads pre-generated tiles and JSON from the public data
+      # bucket instead of the retired Cloud Run backend, so the build no
+      # longer needs to authenticate to GCP to resolve a service URL.
       - name: Build
         working-directory: app
+        env:
+          VITE_DATA_URL: https://storage.googleapis.com/mapa-da-segregacao-dados
         run: |
           bun install --frozen-lockfile
-          VITE_API_URL="$VITE_API_URL" bun run build
+          bun run build
 
       - name: Install Firebase CLI
         run: bun add -g firebase-tools

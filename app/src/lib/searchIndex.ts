@@ -1,8 +1,8 @@
 // Índice de busca de localidades (estados, RMs e municípios) montado a
-// partir do GeoJSON de municípios. Usado pela SearchBar.
+// partir da lista estática de municípios. Usado pela SearchBar.
 import { ESTADOS } from '@/constants/estados';
-import { computeBbox, mergeBbox, type Bbox } from '@/lib/geo';
-import type { SegregationFeature } from '@/services/setores/Setores.interface';
+import { mergeBbox, type Bbox } from '@/lib/geo';
+import type { MunicipioListaDto } from '@/services/setores/Setores.interface';
 
 export type ResultType = 'estado' | 'municipio' | 'reg_metro';
 
@@ -14,19 +14,32 @@ export interface SearchResult {
 	bbox: Bbox | null;
 }
 
-export function buildIndex(features: SegregationFeature[]): SearchResult[] {
+export function buildIndex(items: MunicipioListaDto[]): SearchResult[] {
 	const estadoBboxes = new Map<string, Bbox | null>();
 	const rmBboxes = new Map<string, Bbox | null>();
 	const municipios: SearchResult[] = [];
 
-	for (const feature of features) {
-		const codeMuni = feature.properties.code_muni;
+	for (const item of items) {
+		const codeMuni = item.code_muni;
 		if (!codeMuni) continue;
-		const bbox = feature.geometry ? computeBbox(feature.geometry) : null;
-		const nameMuni = feature.properties.name_muni ?? codeMuni;
-		const codeState = feature.properties.code_state ?? null;
-		const nameMetro = feature.properties.name_metro;
-		const abbrevState = feature.properties.abbrev_state;
+
+		// The bbox is precomputed in the lista artifact, so the search index no
+		// longer needs the full municipality geometry.
+		const bbox: Bbox | null =
+			item.min_lng != null &&
+			item.min_lat != null &&
+			item.max_lng != null &&
+			item.max_lat != null
+				? [
+						[item.min_lng, item.min_lat],
+						[item.max_lng, item.max_lat],
+					]
+				: null;
+
+		const nameMuni = item.name_muni ?? codeMuni;
+		const codeState = item.code_state ?? null;
+		const nameMetro = item.name_metro;
+		const abbrevState = item.abbrev_state;
 
 		municipios.push({
 			id: `muni-${codeMuni}`,

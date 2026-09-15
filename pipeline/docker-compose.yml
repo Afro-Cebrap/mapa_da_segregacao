@@ -1,0 +1,13 @@
+services:
+  pipeline:
+    build: .
+    volumes:
+      # PARQUET_DIR is the folder holding the source parquet on the host.
+      # OUT is the host-side output folder; it always mounts to /out inside
+      # the container, which is why the OUT environment var below is fixed
+      # at /out regardless of what OUT resolves to on the host.
+      - ${PARQUET_DIR:-./data}:/data:ro
+      - ${OUT:-./out}:/out
+    environment:
+      PARQUET: /data/${PARQUET_NAME:-sf_segregation_indices.parquet}
+      OUT: /out

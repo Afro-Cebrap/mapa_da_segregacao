@@ -1,0 +1,8 @@
+geopandas
+pandas
+pyarrow
+numpy
+shapely
+requests
+pytest
+pmtiles

@@ -4,7 +4,7 @@ import { useLocationLookups } from '@/hooks/useLocationLookups';
 import { useEscolas } from '@/hooks/useEscolas';
 import { computeBbox, fitMapToBbox } from '@/lib/geo';
 import { getSegregationTileUrl } from '@/services/setores/Setores.services';
-import type { EscolaRede, LayerId } from '@/types/dashboard.types';
+import type { EscolaRede } from '@/types/dashboard.types';
 import {
 	AttributionControl,
 	Layer,
@@ -19,7 +19,6 @@ import { LAYERS_CONFIG } from '@/constants/layers';
 import { useTheme } from '@/contexts/theme-context';
 import {
 	buildMuniBoundaryFilter,
-	buildSetoresTileFilterParam,
 	buildTileLocationFilter,
 	buildTileSelectionFilter,
 	getFeatureId,
@@ -47,7 +46,11 @@ import {
 	useIndicatorRankings,
 } from '@/hooks/useIndicatorRankings';
 import { useMapLoadingState } from '@/hooks/useMapLoadingState';
-import type { DashboardMapProps, HoverInfo } from '@/types/dashboard.types';
+import type {
+	DashboardMapProps,
+	HoverInfo,
+	LayerId,
+} from '@/types/dashboard.types';
 
 const ACTIVE_SOURCE_ID = 'active-geometry-data';
 // Fonte de municípios usada só para desenhar o contorno destacado do município
@@ -58,10 +61,14 @@ const MUNI_HIGHLIGHT_SOURCE_ID = 'muni-highlight-source';
 // Camada interna do MVT emitido pelo backend (ST_AsMVT('setores_layer', ...));
 // os tres endpoints usam o mesmo nome.
 const TILE_SOURCE_LAYER = 'setores_layer';
-// Acima deste zoom o MapLibre reaproveita (overzoom) as tiles ja baixadas em
-// vez de pedir tiles novas ao backend, segurando a carga do servidor.
-// Municipios/RM atingem detalhe maximo (tabela base) a partir de z12.
-const TILE_MAXZOOM: Record<LayerId, number> = {
+// Each static archive is built by tippecanoe with its own --maximum-zoom
+// (pipeline/tiles.sh). Setores goes to z14, matching the fidelity the old
+// live DB served at high zoom (the base table, not a simplified one) —
+// municípios and regiões metropolitanas were already capped at z12 before
+// this migration and stay there. Above an archive's maxzoom, MapLibre
+// overzooms the tiles it already has instead of requesting ones that do
+// not exist.
+const ARCHIVE_MAXZOOM: Record<LayerId, number> = {
 	setores: 14,
 	municipios: 12,
 	'regioes-metropolitanas': 12,
@@ -206,15 +213,14 @@ function DashboardMap({
 	// ── Camadas via vector tiles (modo API) ──────────────────────────
 	// Sem GeoJSON em memoria, o filtro de localizacao e o realce da selecao
 	// viram expressoes de filtro aplicadas direto nas layers da fonte vetorial.
-	const tileUrl = useMemo(() => {
-		const base = getSegregationTileUrl(activeLayerConfig.endpoint, censusYear);
-		// Só setores filtra no servidor; municípios/RM seguem com a URL base.
-		if (activeLayerId !== 'setores') return base;
-		const param = buildSetoresTileFilterParam(locationFilter, lookups);
-		if (!param) return base;
-		const separator = base.includes('?') ? '&' : '?';
-		return `${base}${separator}${new URLSearchParams(param).toString()}`;
-	}, [activeLayerConfig.endpoint, activeLayerId, censusYear, locationFilter, lookups]);
+	// Tiles are a single static national archive per resource and year. The
+	// location filter is applied by tileLocationFilter below; the old server
+	// side `metro`/`codMunicipio` params only ever narrowed which tracts came
+	// back, never which values they carried.
+	const tileUrl = useMemo(
+		() => getSegregationTileUrl(activeLayerConfig.endpoint, censusYear),
+		[activeLayerConfig.endpoint, censusYear],
+	);
 	const tileLocationFilter = useMemo(
 		() => buildTileLocationFilter(activeLayerId, locationFilter, lookups),
 		[activeLayerId, locationFilter, lookups],
@@ -535,7 +541,7 @@ function DashboardMap({
 					id={ACTIVE_SOURCE_ID}
 					type="vector"
 					tiles={[tileUrl]}
-					maxzoom={TILE_MAXZOOM[activeLayerId]}
+					maxzoom={ARCHIVE_MAXZOOM[activeLayerId]}
 				>
 					{showBaseFill && (
 						<Layer {...tileBaseFillLayer} beforeId={beforeId} />
@@ -552,7 +558,7 @@ function DashboardMap({
 						id={MUNI_HIGHLIGHT_SOURCE_ID}
 						type="vector"
 						tiles={[muniBoundaryTileUrl]}
-						maxzoom={TILE_MAXZOOM.municipios}
+						maxzoom={ARCHIVE_MAXZOOM.municipios}
 					>
 						<Layer
 							{...tileMuniHighlightLayer}
