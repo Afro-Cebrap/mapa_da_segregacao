@@ -1,6 +1,17 @@
 # Infraestrutura GCP — Mapa da Segregação
 
-Deploy serverless: Cloud SQL (banco) + Cloud Run (API) + Firebase Hosting (frontend).
+> **Stack substituído.** O deploy serverless documentado abaixo (Cloud SQL +
+> Cloud Run + Firebase Hosting) foi superado pela migração para tiles
+> estáticos: os dados agora são gerados pelo `pipeline/` e publicados num
+> bucket público, sem banco nem API em produção. A infraestrutura atual está
+> em `deploy/gcp/terraform-static/`, com o runbook em
+> [`deploy/gcp/terraform-static/README.md`](terraform-static/README.md) —
+> comece por ali, inclusive para o passo a passo do teardown deste stack
+> legado. Este documento permanece como referência enquanto o teardown não
+> é executado; a tabela de custos no fim reflete o estado esperado
+> depois dele, não o custo atual enquanto o stack legado ainda está no ar.
+
+Deploy serverless (legado, em processo de desativação): Cloud SQL (banco) + Cloud Run (API) + Firebase Hosting (frontend).
 
 ## Projetos GCP
 
@@ -109,10 +120,16 @@ backend "gcs" {
 
 ## Custos estimados
 
+Custos do stack **atual** (`deploy/gcp/terraform-static/`), depois do
+teardown do stack legado descrito acima:
+
 | Recurso | ~$/mês |
 |---|---|
-| Cloud SQL db-custom-1-3840 | $51 |
-| Cloud Run (escala a zero) | $0–5 |
-| Artifact Registry | $0.10 |
+| Cloud Storage (dados) | $0,02–0,10 |
+| Egress | variável, ~$0–2 |
 | Firebase Hosting | $0 |
-| **Total** | **~$52–57** |
+| **Total** | **~$0–3** |
+
+Antes do teardown, o stack legado abaixo custava ~$52–57/mês (Cloud SQL
+`db-custom-1-3840` sozinho já era ~$51; Cloud Run escala a zero, ~$0–5;
+Artifact Registry, ~$0,10). Essa era a motivação original da migração.
