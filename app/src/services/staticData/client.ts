@@ -19,10 +19,23 @@ const RANKING_FILE_BY_ENDPOINT: Record<SegregationEndpoint, string | null> = {
 	reg_metro: 'indicadores_reg_metro',
 };
 
+// Carries the HTTP status alongside the message so callers (or a debugger)
+// can tell a legitimate 404 apart from a network/DNS/CORS failure, which
+// surfaces as a plain TypeError instead of an instance of this class.
+export class StaticDataHttpError extends Error {
+	readonly status: number;
+
+	constructor(message: string, status: number) {
+		super(message);
+		this.name = 'StaticDataHttpError';
+		this.status = status;
+	}
+}
+
 async function fetchJson<T>(path: string): Promise<T> {
 	const response = await fetch(dataUrl(path));
 	if (!response.ok) {
-		throw new Error(`${response.status} ao buscar ${path}`);
+		throw new StaticDataHttpError(`${response.status} ao buscar ${path}`, response.status);
 	}
 	return (await response.json()) as T;
 }

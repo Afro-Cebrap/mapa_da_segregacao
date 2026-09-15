@@ -22,7 +22,9 @@ export function useSetoresScope(
 ) {
 	const { data: slugIndex } = useMetroSlugs(year);
 	const metroSlugs = slugIndex?.metro ?? {};
-	const ready = Boolean(escopo && codigo && slugIndex);
+	// municipio scope resolves from `codigo` alone (see resolveScopePath) and
+	// never touches the slug index, so only reg_metro scope needs it ready.
+	const ready = Boolean(escopo && codigo && (escopo !== 'reg_metro' || slugIndex));
 
 	return useQuery({
 		queryKey: ['static', 'setores-scope', escopo, codigo, year],
