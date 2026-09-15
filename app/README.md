@@ -23,6 +23,8 @@ bun dev          # http://localhost:3000
 bun run build    # dist/
 bun run preview  # serve dist/ localmente
 bun run lint
+bun run test       # vitest run
+bun run test:watch # vitest, modo watch
 bun run format
 ```
 

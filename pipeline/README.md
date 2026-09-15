@@ -51,8 +51,22 @@ PARQUET_NAME=sf_segregation_indices.parquet \
 
 Isso roda `build.py` (lê o parquet, escreve GeoJSONSeq intermediário e o JSON
 de meta/scopes/manifest) e depois `tiles.sh` (chama o tippecanoe para gerar
-um `.pmtiles` por combinação de recurso/ano). Tudo é escrito em `./out`
-(montado no container; ajustável com a variável `OUT`).
+um `.pmtiles` por combinação de recurso/ano). Por padrão tudo é escrito em
+`./out`, mas isso é ajustável: defina `OUT` no host antes do
+`docker compose run` para montar outra pasta no lugar de `./out` — por
+exemplo, um disco com mais espaço livre, já que os tamanhos dos tilesets são
+uma estimativa (ver abaixo), não uma medição:
+
+```bash
+OUT=/caminho/para/disco/com/espaco \
+PARQUET_DIR=/caminho/para/pasta/com/o/parquet \
+PARQUET_NAME=sf_segregation_indices.parquet \
+  docker compose run --rm pipeline
+```
+
+(`docker-compose.yml` monta `${OUT:-./out}` do host em `/out` dentro do
+container; dentro do container o caminho é sempre `/out`, então essa `OUT`
+do host é só sobre onde os arquivos ficam salvos na sua máquina.)
 
 **Confira os tamanhos impressos ao final** — `tiles.sh` termina com
 `ls -lh "$OUT/tiles"`. Isso importa porque os tamanhos dos seis tilesets
@@ -98,22 +112,61 @@ completo (seis combinações reais) esse caminho nunca é acionado.
 ## 4. Validar a paridade
 
 Antes de publicar qualquer coisa, confirme que os artefatos gerados batem
-com o que a API antiga (ainda viva) responde. Suba a API legada localmente:
+com o que a API antiga (ainda viva) responde. Suba a API legada localmente
+(num terminal separado, deixe rodando):
 
 ```bash
 cd api
 venv1\Scripts\python -m uvicorn app:app --reload --host 127.0.0.1 --port 8000
 ```
 
-E, com o servidor no ar, rode o validador a partir de `pipeline/`:
+`validate.py` importa o pacote `requests` para falar com essa API — e isso
+**não** está instalado em `api/venv1` (aquele venv serve a própria API, não
+o pipeline). Rode o validador com um interpretador que tenha
+`pipeline/requirements.txt` instalado, que já inclui `requests`.
+
+### Opção A — venv dedicado do pipeline (recomendado)
 
 ```bash
-python validate.py --out ./out --api-url http://127.0.0.1:8000
+cd pipeline
+python -m venv venv
+venv\Scripts\python -m pip install -r requirements.txt
+venv\Scripts\python validate.py --out ./out --api-url http://127.0.0.1:8000
 ```
+
+(Se for manter esse venv localmente, adicione `venv/` ao `pipeline/.gitignore`
+— ele não está lá hoje porque este venv nunca existiu antes.)
+
+### Opção B — dentro do container Docker
+
+A imagem já tem `requests` instalado (é parte do `pip install -r
+requirements.txt` do `Dockerfile`), então dá para rodar o validador sem criar
+venv nenhum — mas a API do passo anterior roda no **host**, não no
+container, então `http://127.0.0.1:8000` de dentro do container aponta para
+o próprio container, não para o host. Use `host.docker.internal`, que o
+Docker Desktop (Windows/Mac) resolve para o host automaticamente:
+
+```bash
+cd pipeline
+docker compose run --rm pipeline python validate.py --out /out --api-url http://host.docker.internal:8000
+```
+
+Repare nas duas diferenças em relação à Opção A: o comando roda `python`
+direto (substituindo o `CMD` padrão do container, que é `tiles.sh`), `--out`
+aponta para `/out` (o caminho **dentro** do container, não `./out` do host —
+ver a seção 2 sobre a variável `OUT`), e a URL da API usa
+`host.docker.internal` em vez de `127.0.0.1`. Isso não funciona em Docker
+nativo no Linux sem configuração extra (`host.docker.internal` só é
+automático no Docker Desktop); se for esse o seu caso, use a Opção A.
+
+### Depois de rodar (qualquer uma das opções)
 
 **Só siga para o passo de publicação com saída limpa** (`All artifacts match
 the live API.`, código de saída 0). Qualquer divergência impressa é motivo
-para investigar antes de publicar — não para publicar assim mesmo.
+para investigar antes de publicar — não para publicar assim mesmo. Esse é o
+passo que autoriza destruir o banco de produção mais adiante (seção 4 de
+`deploy/gcp/terraform-static/README.md`); não pule nem trate uma falha aqui
+como cosmética.
 
 ## 5. Publicar
 
