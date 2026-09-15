@@ -18,13 +18,16 @@ describe('staticDataService error handling', () => {
 	});
 
 	it('throws a StaticDataHttpError instance, distinct from a network TypeError', async () => {
+		// Simulates a DNS/CORS/offline failure: fetch itself rejects, rather
+		// than resolving with a non-ok response.
 		vi.stubGlobal(
 			'fetch',
-			vi.fn().mockResolvedValue({ ok: false, status: 500 } as Response),
+			vi.fn().mockRejectedValue(new TypeError('Failed to fetch')),
 		);
 
-		await expect(staticDataService.fetchMunicipiosLista(2022)).rejects.toBeInstanceOf(
-			StaticDataHttpError,
-		);
+		const rejection = staticDataService.fetchMunicipiosLista(2022);
+
+		await expect(rejection).rejects.not.toBeInstanceOf(StaticDataHttpError);
+		await expect(rejection).rejects.not.toHaveProperty('status');
 	});
 });

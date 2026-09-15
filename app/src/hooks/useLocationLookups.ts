@@ -24,6 +24,9 @@ export interface LocationLookups {
 		code_state: string | null;
 	}>;
 	regioesMetropolitanas: Array<{ name_metro: string }>;
+	// Raw lista rows, kept as-is so SearchBar can build its index from the
+	// same cached payload instead of fetching municipios/lista a second time.
+	listaRows: MunicipioListaDto[];
 }
 
 const EMPTY_LOOKUPS: LocationLookups = {
@@ -33,6 +36,7 @@ const EMPTY_LOOKUPS: LocationLookups = {
 	muniBounds: new Map(),
 	municipios: [],
 	regioesMetropolitanas: [],
+	listaRows: [],
 };
 
 function buildLookups(items: MunicipioListaDto[]): LocationLookups {
@@ -109,6 +113,7 @@ function buildLookups(items: MunicipioListaDto[]): LocationLookups {
 		muniBounds,
 		municipios,
 		regioesMetropolitanas,
+		listaRows: items,
 	};
 }
 

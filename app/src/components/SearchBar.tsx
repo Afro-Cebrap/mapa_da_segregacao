@@ -1,5 +1,4 @@
 import type { MapRef } from '@vis.gl/react-maplibre';
-import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import {
 	Command,
@@ -16,10 +15,7 @@ import {
 } from '@/components/ui/popover';
 import { MapIcon, MapPin, Navigation, Search } from 'lucide-react';
 import { useMemo, useState, type RefObject } from 'react';
-import {
-	setoresDtoToFeatureCollection,
-	setoresService,
-} from '@/services/setores/Setores.services';
+import { useLocationLookups } from '@/hooks/useLocationLookups';
 import { fitMapToBbox } from '@/lib/geo';
 import { normalizeText } from '@/lib/format';
 import {
@@ -48,22 +44,9 @@ function SearchBar({ mapRef }: { mapRef: RefObject<MapRef | null> }) {
 	const [searchOpen, setSearchOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState('');
 
-	const layerQuery = useQuery({
-		queryKey: ['layer-geometry', 'municipios'],
-		queryFn: async () => {
-			const items = await setoresService.listarPorEndpoint(
-				'municipios',
-				2010,
-			);
-			return setoresDtoToFeatureCollection(items);
-		},
-		staleTime: 1000 * 60 * 60,
-	});
+	const { data: lookups, isLoading } = useLocationLookups(2010);
 
-	const index = useMemo(() => {
-		if (!layerQuery.data) return [];
-		return buildIndex(layerQuery.data.features);
-	}, [layerQuery.data]);
+	const index = useMemo(() => buildIndex(lookups.listaRows), [lookups]);
 
 	const groupedResults = useMemo(() => {
 		if (searchQuery.length < 2)
@@ -86,7 +69,6 @@ function SearchBar({ mapRef }: { mapRef: RefObject<MapRef | null> }) {
 		}));
 	}, [searchQuery, index]);
 
-	const isLoading = layerQuery.isLoading;
 	const hasAnyResult = groupedResults.some((g) => g.items.length > 0);
 
 	const handleSelectLocation = (item: SearchResult) => {

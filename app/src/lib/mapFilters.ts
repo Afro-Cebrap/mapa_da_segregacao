@@ -154,25 +154,3 @@ export function getSelectedInfo(
 		),
 	};
 }
-
-// Mapeia o filtro de localização para o query param do tile de setores
-// (filtragem server-side). RM e município-em-RM plotam a RM inteira (param
-// `metro`); município isolado usa `codMunicipio`. Estado não se aplica a setores.
-export function buildSetoresTileFilterParam(
-	locationFilter: LocationFilter | null,
-	lookups: LocationLookups,
-): Record<string, string> | null {
-	if (!locationFilter) return null;
-
-	if (locationFilter.scope === 'reg_metro') {
-		return { metro: locationFilter.code };
-	}
-
-	if (locationFilter.scope === 'municipio') {
-		const nameMetro = lookups.muniInfo.get(locationFilter.code)?.name_metro;
-		if (nameMetro) return { metro: nameMetro };
-		return { codMunicipio: locationFilter.code };
-	}
-
-	return null;
-}
